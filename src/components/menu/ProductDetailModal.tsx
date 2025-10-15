@@ -53,17 +53,19 @@ export const ProductDetailModal = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-[600px] p-0 gap-0 max-h-[90vh] overflow-y-auto"
+        className="max-w-[1100px] w-[95vw] p-0 gap-0 max-h-[90vh] overflow-hidden grid lg:grid-cols-[60%_40%]"
         onEscapeKeyDown={handleClose}
         aria-describedby="product-description"
+        aria-labelledby="product-title"
       >
-        {/* Imagem */}
-        <div className="relative w-full aspect-[16/10] bg-muted overflow-hidden rounded-t-lg">
+        {/* Imagem - Coluna Esquerda */}
+        <div className="relative w-full h-full bg-black flex items-center justify-center lg:max-h-[90vh]">
           {item.imagem ? (
             <img
               src={item.imagem}
               alt={item.nome}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
+              loading="lazy"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-8xl">
@@ -80,10 +82,10 @@ export const ProductDetailModal = ({
           )}
         </div>
 
-        {/* Conteúdo */}
-        <div className="p-6 space-y-4">
+        {/* Conteúdo - Coluna Direita */}
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-foreground">
+            <DialogTitle id="product-title" className="text-2xl font-bold text-foreground">
               {item.nome}
             </DialogTitle>
           </DialogHeader>
