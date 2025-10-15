@@ -20,13 +20,18 @@ const Admin = () => {
         return;
       }
 
-      // Verificar se usuário tem alguma role válida
+      // Verificar se usuário tem role ou permissão de acesso
       const { data: userRoles } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", session.user.id);
 
-      if (!userRoles || userRoles.length === 0) {
+      const { data: userPermissions } = await supabase
+        .from("user_permissions")
+        .select("permission")
+        .eq("user_id", session.user.id);
+
+      if ((!userRoles || userRoles.length === 0) && (!userPermissions || userPermissions.length === 0)) {
         await supabase.auth.signOut();
         toast.error("Acesso negado. Você não tem permissões de acesso.");
         navigate("/login");
