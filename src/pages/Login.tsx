@@ -30,14 +30,15 @@ const Login = () => {
       }
 
       if (data.user) {
-        // Verificar se é admin
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tipo")
-          .eq("id", data.user.id)
-          .single();
+        // Verificar se tem role de admin
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
 
-        if (profile?.tipo === "admin") {
+        const isAdmin = roles?.some(r => r.role === "admin");
+
+        if (isAdmin) {
           toast.success("Login realizado com sucesso! 🎉");
           navigate("/admin");
         } else {
