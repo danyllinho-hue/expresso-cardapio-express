@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UtensilsCrossed, FolderTree, TrendingUp, ShoppingBag } from "lucide-react";
+import { Users, UtensilsCrossed, FolderTree, TrendingUp, ShoppingBag, Volume2 } from "lucide-react";
 import { usePermissions } from "@/contexts/PermissionsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { playNotificationSound } from "@/utils/notificationSound";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 
 interface Order {
@@ -30,6 +31,8 @@ const Dashboard = () => {
   });
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -80,7 +83,26 @@ const Dashboard = () => {
     }
   };
 
+  const enableSound = async () => {
+    try {
+      // Tentar tocar som de teste
+      playNotificationSound();
+      
+      // Salvar preferência
+      localStorage.setItem('sound_enabled', 'true');
+      setSoundEnabled(true);
+      
+      toast.success("✅ Notificações sonoras ativadas!");
+    } catch (error) {
+      toast.error("Erro ao ativar som. Verifique permissões do navegador.");
+    }
+  };
+
   useEffect(() => {
+    // Verificar se som já foi habilitado antes
+    const soundWasEnabled = localStorage.getItem('sound_enabled') === 'true';
+    setSoundEnabled(soundWasEnabled);
+
     fetchStats();
     fetchRecentOrders();
 
@@ -94,25 +116,75 @@ const Dashboard = () => {
           schema: "public",
           table: "orders",
         },
-        () => {
-          playNotificationSound();
-          toast.success("🔔 Novo pedido recebido!");
+        (payload) => {
+          console.log("🔔 Novo pedido recebido via Realtime:", payload);
+          
+          // Tocar som apenas se habilitado
+          if (soundWasEnabled) {
+            playNotificationSound();
+          }
+          
+          toast.success("🔔 Novo pedido recebido!", {
+            action: {
+              label: "Ver Pedidos",
+              onClick: () => navigate("/admin/pedidos"),
+            },
+          });
+          
           fetchStats();
           fetchRecentOrders();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Realtime status:", status);
+        if (status === "SUBSCRIBED") {
+          setRealtimeStatus("connected");
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setRealtimeStatus("error");
+          toast.error("Erro ao conectar notificações em tempo real");
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [navigate]);
   
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">Bem-vindo ao painel administrativo</p>
+      {/* Banner de ativação de som */}
+      {!soundEnabled && (
+        <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/20">
+          <Volume2 className="h-4 w-4" />
+          <AlertTitle>Ative as Notificações Sonoras</AlertTitle>
+          <AlertDescription className="flex items-center gap-4 flex-wrap">
+            <span>Clique no botão para receber alertas sonoros quando novos pedidos entrarem.</span>
+            <Button onClick={enableSound} size="sm" variant="default">
+              🔔 Ativar Som
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">Bem-vindo ao painel administrativo</p>
+        </div>
+        
+        <div className="flex gap-2">
+          {/* Badge de status */}
+          <Badge variant={realtimeStatus === 'connected' ? 'default' : 'destructive'}>
+            {realtimeStatus === 'connected' ? '🟢 Conectado' : '🔴 Desconectado'}
+          </Badge>
+          
+          {/* Botão de teste */}
+          {soundEnabled && (
+            <Button onClick={playNotificationSound} size="sm" variant="outline">
+              🔔 Testar Som
+            </Button>
+          )}
+        </div>
       </div>
 
       {hasPermission('view_dashboard') && (
