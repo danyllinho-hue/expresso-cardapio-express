@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Setup from "./pages/Setup";
 import Admin from "./pages/Admin";
 import Dashboard from "./pages/admin/Dashboard";
+import Pedidos from "./pages/admin/Pedidos";
 import Categorias from "./pages/admin/Categorias";
 import Cardapio from "./pages/admin/Cardapio";
 import Complementos from "./pages/admin/Complementos";
@@ -30,7 +31,15 @@ const App = () => (
           <Route path="/admin" element={<Admin />}>
             <Route index element={<Dashboard />} />
             <Route 
-              path="categorias" 
+              path="pedidos" 
+              element={
+                <ProtectedRoute permission="manage_orders">
+                  <Pedidos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="categorias"
               element={
                 <ProtectedRoute permission="manage_categories">
                   <Categorias />

@@ -19,6 +19,7 @@ import {
   ListPlus,
   Users,
   LogOut,
+  ShoppingBag,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +31,12 @@ const menuItems = [
     icon: LayoutDashboard, 
     end: true,
     permission: "view_dashboard",
+  },
+  { 
+    title: "Pedidos", 
+    url: "/admin/pedidos", 
+    icon: ShoppingBag,
+    permission: "manage_orders",
   },
   { 
     title: "Categorias", 

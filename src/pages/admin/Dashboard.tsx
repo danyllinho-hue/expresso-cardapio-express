@@ -1,9 +1,112 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UtensilsCrossed, FolderTree, TrendingUp } from "lucide-react";
+import { Users, UtensilsCrossed, FolderTree, TrendingUp, ShoppingBag } from "lucide-react";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { playNotificationSound } from "@/utils/notificationSound";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+
+interface Order {
+  id: string;
+  created_at: string;
+  total: number;
+  status: string;
+  customers: {
+    nome: string;
+  } | null;
+}
 
 const Dashboard = () => {
   const { hasPermission } = usePermissions();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    customers: 0,
+    menuItems: 0,
+    categories: 0,
+    ordersToday: 0,
+  });
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      const [customers, menuItems, categories, ordersToday] = await Promise.all([
+        supabase.from("customers").select("id", { count: "exact", head: true }),
+        supabase.from("menu_items").select("id", { count: "exact", head: true }),
+        supabase.from("categories").select("id", { count: "exact", head: true }),
+        supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", new Date().toISOString().split("T")[0]),
+      ]);
+
+      setStats({
+        customers: customers.count || 0,
+        menuItems: menuItems.count || 0,
+        categories: categories.count || 0,
+        ordersToday: ordersToday.count || 0,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar estatísticas:", error);
+    }
+  };
+
+  const fetchRecentOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`
+          id,
+          created_at,
+          total,
+          status,
+          customers (
+            nome
+          )
+        `)
+        .eq("status", "pendente")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setRecentOrders(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar pedidos recentes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    fetchRecentOrders();
+
+    // Realtime para novos pedidos
+    const channel = supabase
+      .channel("dashboard-orders")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "orders",
+        },
+        () => {
+          playNotificationSound();
+          toast.success("🔔 Novo pedido recebido!");
+          fetchStats();
+          fetchRecentOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
   
   return (
     <div className="space-y-6">
@@ -13,51 +116,103 @@ const Dashboard = () => {
       </div>
 
       {hasPermission('view_dashboard') && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Clientes cadastrados</p>
-            </CardContent>
-          </Card>
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.customers}</div>
+                <p className="text-xs text-muted-foreground">Clientes cadastrados</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Itens no Cardápio</CardTitle>
-              <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Produtos ativos</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Itens no Cardápio</CardTitle>
+                <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.menuItems}</div>
+                <p className="text-xs text-muted-foreground">Produtos ativos</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Categorias</CardTitle>
-              <FolderTree className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Categorias criadas</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Categorias</CardTitle>
+                <FolderTree className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.categories}</div>
+                <p className="text-xs text-muted-foreground">Categorias criadas</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pedidos Hoje</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pedidos Hoje</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.ordersToday}</div>
+                <p className="text-xs text-muted-foreground">Pedidos via WhatsApp</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5" />
+                Pedidos Pendentes
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/admin/pedidos")}
+              >
+                Ver Todos
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Pedidos via WhatsApp</p>
+              {loading ? (
+                <p className="text-center text-muted-foreground py-8">Carregando...</p>
+              ) : recentOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhum pedido pendente
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {recentOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => navigate("/admin/pedidos")}
+                    >
+                      <div>
+                        <p className="font-medium">{order.customers?.nome || "Cliente"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          #{order.id.slice(0, 8)} •{" "}
+                          {new Date(order.created_at).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">R$ {order.total.toFixed(2)}</p>
+                        <Badge variant="default">Pendente</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
+        </>
       )}
 
       <Card>
