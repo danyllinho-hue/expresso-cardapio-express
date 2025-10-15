@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { toast } from "sonner";
 
 const Admin = () => {
@@ -19,16 +20,15 @@ const Admin = () => {
         return;
       }
 
-      // Verificar se é admin
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tipo")
-        .eq("id", session.user.id)
-        .single();
+      // Verificar se usuário tem alguma role válida
+      const { data: userRoles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id);
 
-      if (profile?.tipo !== "admin") {
+      if (!userRoles || userRoles.length === 0) {
         await supabase.auth.signOut();
-        toast.error("Acesso negado.");
+        toast.error("Acesso negado. Você não tem permissões de acesso.");
         navigate("/login");
         return;
       }
@@ -59,17 +59,19 @@ const Admin = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AdminSidebar />
-        <div className="flex-1 flex flex-col">
-          <AdminHeader />
-          <main className="flex-1 p-6 bg-muted/20">
-            <Outlet />
-          </main>
+    <PermissionsProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AdminSidebar />
+          <div className="flex-1 flex flex-col">
+            <AdminHeader />
+            <main className="flex-1 p-6 bg-muted/20">
+              <Outlet />
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </PermissionsProvider>
   );
 };
 

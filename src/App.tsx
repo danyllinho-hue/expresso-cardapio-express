@@ -5,10 +5,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import Setup from "./pages/Setup";
 import Admin from "./pages/Admin";
 import Dashboard from "./pages/admin/Dashboard";
 import Categorias from "./pages/admin/Categorias";
+import Usuarios from "./pages/admin/Usuarios";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -21,9 +24,25 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/setup" element={<Setup />} />
           <Route path="/admin" element={<Admin />}>
             <Route index element={<Dashboard />} />
-            <Route path="categorias" element={<Categorias />} />
+            <Route 
+              path="categorias" 
+              element={
+                <ProtectedRoute permission="manage_categories">
+                  <Categorias />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="usuarios" 
+              element={
+                <ProtectedRoute permission="manage_users">
+                  <Usuarios />
+                </ProtectedRoute>
+              } 
+            />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

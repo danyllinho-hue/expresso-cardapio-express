@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import {
   Sidebar,
   SidebarContent,
@@ -14,32 +15,38 @@ import {
 import {
   LayoutDashboard,
   FolderTree,
-  UtensilsCrossed,
-  Eye,
   Users,
-  Zap,
-  Settings,
-  BarChart3,
   LogOut,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const menuItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard, end: true },
-  { title: "Categorias", url: "/admin/categorias", icon: FolderTree },
-  { title: "Cardápio", url: "/admin/cardapio", icon: UtensilsCrossed },
-  { title: "Visualizar Cardápio", url: "/admin/preview", icon: Eye },
-  { title: "Clientes", url: "/admin/clientes", icon: Users },
-  { title: "Automações", url: "/admin/automacoes", icon: Zap },
-  { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
-  { title: "Relatórios", url: "/admin/relatorios", icon: BarChart3 },
+  { 
+    title: "Dashboard", 
+    url: "/admin", 
+    icon: LayoutDashboard, 
+    end: true,
+    permission: "view_dashboard",
+  },
+  { 
+    title: "Categorias", 
+    url: "/admin/categorias", 
+    icon: FolderTree,
+    permission: "manage_categories",
+  },
+  { 
+    title: "Usuários", 
+    url: "/admin/usuarios", 
+    icon: Users,
+    permission: "manage_users",
+  },
 ];
 
 export function AdminSidebar() {
   const { state } = useSidebar();
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const isCollapsed = state === "collapsed";
 
   const handleLogout = async () => {
@@ -71,24 +78,26 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.end}
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "hover:bg-sidebar-accent/50"
-                      }
-                    >
-                      <item.icon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems
+                .filter(item => hasPermission(item.permission))
+                .map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.end}
+                        className={({ isActive }) =>
+                          isActive
+                            ? "bg-muted text-primary font-medium"
+                            : "hover:bg-muted/50"
+                        }
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {!isCollapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
