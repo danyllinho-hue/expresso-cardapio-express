@@ -54,6 +54,9 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, itemName }: ImageUpload
           return;
         }
 
+        // Otimização de qualidade
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
         
         canvas.toBlob(
@@ -65,7 +68,7 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, itemName }: ImageUpload
             }
           },
           "image/webp",
-          0.85
+          0.85 // Qualidade otimizada para melhor compressão
         );
       };
 
@@ -81,8 +84,9 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, itemName }: ImageUpload
       return;
     }
 
+    // Validação de tamanho (máximo 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Use imagens JPG, PNG ou WEBP com até 2 MB.");
+      toast.error("Imagem muito grande! Tamanho máximo: 2MB");
       return;
     }
 
@@ -140,9 +144,16 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, itemName }: ImageUpload
       setPreviewUrl(fullUrl.publicUrl);
       onImageUploaded(fullUrl.publicUrl, thumbUrl.publicUrl);
       toast.success("Imagem enviada com sucesso.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao fazer upload:", error);
-      toast.error("Não foi possível enviar a imagem. Tente novamente.");
+      
+      if (error.message?.includes("storage")) {
+        toast.error("Erro no armazenamento. Verifique as permissões.");
+      } else if (error.message?.includes("convert")) {
+        toast.error("Erro ao processar imagem. Tente outro formato.");
+      } else {
+        toast.error("Não foi possível enviar a imagem. Tente novamente.");
+      }
     } finally {
       setUploading(false);
       setProgress(0);

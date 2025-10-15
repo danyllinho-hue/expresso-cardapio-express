@@ -53,9 +53,31 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
     setLoading(true);
 
     try {
+      // Validate cart is not empty
+      if (!cart || cart.length === 0) {
+        toast.error("Seu carrinho está vazio! Adicione itens antes de finalizar o pedido.");
+        setLoading(false);
+        return;
+      }
+
       // Validate form
       if (!formData.nome || !formData.whatsapp || !formData.endereco) {
         toast.error("Preencha todos os campos obrigatórios");
+        setLoading(false);
+        return;
+      }
+
+      // Validate WhatsApp format
+      const whatsappRegex = /^(\+?55)?[\s-]?\(?\d{2}\)?[\s-]?9?\d{4}[\s-]?\d{4}$/;
+      if (!whatsappRegex.test(formData.whatsapp)) {
+        toast.error("WhatsApp inválido. Use o formato: (75) 99999-9999");
+        setLoading(false);
+        return;
+      }
+
+      // Validate address length
+      if (formData.endereco.length < 10) {
+        toast.error("Endereço muito curto. Informe rua, número e bairro");
         setLoading(false);
         return;
       }
@@ -116,11 +138,18 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
 
       if (itemsError) throw itemsError;
 
-      toast.success("Pedido realizado com sucesso! 🎉");
+      toast.success(`Pedido #${order.id.slice(0, 8)} realizado com sucesso! 🎉`);
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
-      toast.error("Erro ao criar pedido. Tente novamente.");
+      
+      if (error.message?.includes("duplicate key")) {
+        toast.error("Erro: Este WhatsApp já possui um pedido em andamento");
+      } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
+        toast.error("Erro de conexão. Verifique sua internet e tente novamente");
+      } else {
+        toast.error("Erro ao criar pedido. Tente novamente");
+      }
     } finally {
       setLoading(false);
     }

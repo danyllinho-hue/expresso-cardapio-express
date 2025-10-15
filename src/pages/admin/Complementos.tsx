@@ -143,10 +143,17 @@ const Complementos = () => {
       return;
     }
 
+    // Validate additional price
+    const valorAdicional = parseFloat(optionFormData.valor_adicional) || 0;
+    if (valorAdicional < 0) {
+      toast.error("Valor adicional não pode ser negativo");
+      return;
+    }
+
     const optionData = {
       group_id: selectedGroupForOptions,
       nome: optionFormData.nome,
-      valor_adicional: parseFloat(optionFormData.valor_adicional) || 0,
+      valor_adicional: valorAdicional,
       ordem: optionFormData.ordem,
     };
 

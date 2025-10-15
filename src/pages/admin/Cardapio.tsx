@@ -113,10 +113,17 @@ const Cardapio = () => {
       return;
     }
 
+    // Validate price
+    const preco = parseFloat(formData.preco);
+    if (isNaN(preco) || preco <= 0) {
+      toast.error("Preço deve ser maior que zero");
+      return;
+    }
+
     const itemData = {
       nome: formData.nome,
       descricao: formData.descricao || null,
-      preco: parseFloat(formData.preco),
+      preco: preco,
       categoria_id: formData.categoria_id,
       imagem: formData.imagem || null,
       image_thumb_url: formData.imagem_thumb || null,
