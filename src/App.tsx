@@ -13,6 +13,7 @@ import Categorias from "./pages/admin/Categorias";
 import Cardapio from "./pages/admin/Cardapio";
 import Complementos from "./pages/admin/Complementos";
 import Usuarios from "./pages/admin/Usuarios";
+import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/setup" element={<Setup />} />
+          <Route path="/pedido/:orderId" element={<OrderTracking />} />
           <Route path="/admin" element={<Admin />}>
             <Route index element={<Dashboard />} />
             <Route 

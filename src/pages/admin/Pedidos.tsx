@@ -43,10 +43,18 @@ interface OrderItem {
   notes: string | null;
 }
 
+interface StatusHistory {
+  id: string;
+  status: string;
+  changed_at: string;
+  notes: string | null;
+}
+
 const Pedidos = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [statusHistory, setStatusHistory] = useState<StatusHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -88,6 +96,55 @@ const Pedidos = () => {
     }
   };
 
+  const fetchStatusHistory = async (orderId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("order_status_history")
+        .select("*")
+        .eq("order_id", orderId)
+        .order("changed_at", { ascending: true });
+
+      if (error) throw error;
+      setStatusHistory(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar histórico:", error);
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string, order: Order) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: newStatus })
+        .eq("id", orderId);
+
+      if (error) throw error;
+      
+      toast.success(`Pedido atualizado para: ${getStatusLabel(newStatus)}`);
+      
+      // Abrir WhatsApp para notificar cliente
+      if (newStatus !== 'cancelado') {
+        notifyStatusChange(order, newStatus);
+      }
+      
+      fetchOrders();
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast.error("Erro ao atualizar status do pedido");
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pendente: "Pendente",
+      em_preparo: "Em Produção",
+      enviado: "Enviado",
+      concluido: "Concluído",
+      cancelado: "Cancelado",
+    };
+    return labels[status] || status;
+  };
+
   useEffect(() => {
     fetchOrders();
 
@@ -117,20 +174,23 @@ const Pedidos = () => {
   const openOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     fetchOrderItems(order.id);
+    fetchStatusHistory(order.id);
     setDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       pendente: "default",
-      "em_preparo": "secondary",
+      em_preparo: "secondary",
+      enviado: "secondary",
       concluido: "secondary",
       cancelado: "destructive",
     };
 
     const labels: Record<string, string> = {
       pendente: "Pendente",
-      "em_preparo": "Em Preparo",
+      em_preparo: "Em Produção",
+      enviado: "Enviado",
       concluido: "Concluído",
       cancelado: "Cancelado",
     };
@@ -193,6 +253,88 @@ _Sistema Expresso Espetaria_ 🍢`;
     window.open(whatsappUrl, "_blank");
   };
 
+  const notifyStatusChange = (order: Order, newStatus: string) => {
+    if (!order.customers) return;
+    
+    const phone = formatWhatsApp(order.customers.whatsapp);
+    const trackingUrl = `${window.location.origin}/pedido/${order.id}`;
+    
+    const messages: Record<string, string> = {
+      em_preparo: `🍢 *PEDIDO ACEITO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} foi aceito e já está sendo preparado! 📦\n\n🕒 Previsão: 30-40 min\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      
+      enviado: `🚚 *PEDIDO A CAMINHO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} saiu para entrega!\n\nAguarde o entregador no endereço:\n📍 ${order.delivery_address}\n\nAcompanhe:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      
+      concluido: `✅ *PEDIDO CONCLUÍDO!*\n\nObrigado por escolher o Expresso Espetaria! 🍢\n\nPedido #${order.id.slice(0, 8)} foi finalizado com sucesso.\n\nEsperamos que tenha gostado! Até a próxima! 😊`,
+      
+      cancelado: `❌ *PEDIDO CANCELADO*\n\nOlá *${order.customers.nome}*, infelizmente seu pedido #${order.id.slice(0, 8)} foi cancelado.\n\nPara mais informações, entre em contato:\n📞 (75) 99231-5312\n\n_Expresso Espetaria_ 🍢`
+    };
+    
+    const message = messages[newStatus];
+    if (message) {
+      const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank");
+    }
+  };
+
+  const OrderStatusActions = ({ order }: { order: Order }) => {
+    switch (order.status) {
+      case 'pendente':
+        return (
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => updateOrderStatus(order.id, 'em_preparo', order)}
+            >
+              ✅ Aceitar
+            </Button>
+            <Button 
+              size="sm" 
+              variant="destructive" 
+              onClick={() => updateOrderStatus(order.id, 'cancelado', order)}
+            >
+              ❌ Cancelar
+            </Button>
+          </div>
+        );
+        
+      case 'em_preparo':
+        return (
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => updateOrderStatus(order.id, 'enviado', order)}
+            >
+              🚚 Enviar
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => updateOrderStatus(order.id, 'cancelado', order)}
+            >
+              ❌ Cancelar
+            </Button>
+          </div>
+        );
+        
+      case 'enviado':
+        return (
+          <Button 
+            size="sm" 
+            onClick={() => updateOrderStatus(order.id, 'concluido', order)}
+          >
+            ✅ Concluir
+          </Button>
+        );
+        
+      case 'concluido':
+      case 'cancelado':
+        return getStatusBadge(order.status);
+        
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -233,7 +375,8 @@ _Sistema Expresso Espetaria_ 🍢`;
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Data/Hora</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead>Ações Rápidas</TableHead>
+                  <TableHead>Detalhes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -257,6 +400,9 @@ _Sistema Expresso Espetaria_ 🍢`;
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>
                       {new Date(order.created_at).toLocaleString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      <OrderStatusActions order={order} />
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -348,6 +494,32 @@ _Sistema Expresso Espetaria_ 🍢`;
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {statusHistory.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Histórico do Pedido</p>
+                  <div className="border rounded-lg divide-y">
+                    {statusHistory.map((history) => (
+                      <div key={history.id} className="p-3 flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{getStatusLabel(history.status)}</p>
+                          {history.notes && (
+                            <p className="text-sm text-muted-foreground">{history.notes}</p>
+                          )}
+                        </div>
+                        <div className="text-right text-sm text-muted-foreground">
+                          {new Date(history.changed_at).toLocaleString("pt-BR")}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground mb-2">Ações Rápidas</p>
+                <OrderStatusActions order={selectedOrder} />
               </div>
 
               <div className="flex gap-2 pt-4">

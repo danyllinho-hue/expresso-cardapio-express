@@ -138,8 +138,14 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
 
       if (itemsError) throw itemsError;
 
-      toast.success(`Pedido #${order.id.slice(0, 8)} realizado com sucesso! 🎉`);
-      onSuccess();
+      toast.success(`Pedido #${order.id.slice(0, 8)} realizado com sucesso! Redirecionando... 🎉`, {
+        duration: 2000,
+      });
+
+      // Aguardar 1 segundo para mostrar toast, depois redirecionar
+      setTimeout(() => {
+        window.location.href = `/pedido/${order.id}`;
+      }, 1000);
     } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
       
