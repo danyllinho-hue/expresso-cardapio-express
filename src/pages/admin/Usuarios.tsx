@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Loader2, Shield, Users, ChefHat, Headset } from "lucide-react";
+import { UserPlus, Loader2, Shield, Users, ChefHat, Headset, Power, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const ROLE_CONFIG = {
   admin: { label: "Admin", icon: Shield, color: "destructive" },
@@ -139,6 +140,38 @@ const Usuarios = () => {
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao criar usuário");
+    },
+  });
+
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: async ({ userId, currentStatus }: { userId: string; currentStatus: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ ativo: !currentStatus })
+        .eq("id", userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Status do usuário atualizado!");
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao atualizar status: " + error.message);
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Usuário excluído com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao excluir usuário: " + error.message);
     },
   });
 
@@ -293,13 +326,16 @@ const Usuarios = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Cargo</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Criado em</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {usuarios?.map((user) => {
                   const roleConfig = ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG];
                   const Icon = roleConfig?.icon || Users;
+                  const isAdmin = user.role === 'admin';
                   
                   return (
                     <TableRow key={user.id}>
@@ -312,7 +348,55 @@ const Usuarios = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        <Badge variant={user.ativo ? "default" : "secondary"}>
+                          {user.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {!isAdmin && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleUserStatusMutation.mutate({ 
+                                  userId: user.id, 
+                                  currentStatus: user.ativo 
+                                })}
+                                disabled={toggleUserStatusMutation.isPending}
+                              >
+                                <Power className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="destructive" size="sm">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta ação não pode ser desfeita. O usuário {user.email} será permanentemente excluído do sistema.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteUserMutation.mutate(user.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
