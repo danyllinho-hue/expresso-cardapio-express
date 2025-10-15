@@ -1,0 +1,25 @@
+{
+  "name": "Expresso Espetaria Delivery 🍢",
+  "short_name": "Expresso",
+  "description": "Cardápio digital do Expresso Espetaria - Peça direto com o Expresso!",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFD54F",
+  "theme_color": "#FFD54F",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
