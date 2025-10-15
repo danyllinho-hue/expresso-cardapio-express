@@ -36,14 +36,19 @@ const Login = () => {
           .select("role")
           .eq("user_id", data.user.id);
 
-        const isAdmin = roles?.some(r => r.role === "admin");
+        const { data: permissions } = await supabase
+          .from("user_permissions")
+          .select("permission")
+          .eq("user_id", data.user.id);
 
-        if (isAdmin) {
+        const hasAccess = (roles && roles.length > 0) || (permissions && permissions.length > 0);
+
+        if (hasAccess) {
           toast.success("Login realizado com sucesso! 🎉");
           navigate("/admin");
         } else {
           await supabase.auth.signOut();
-          toast.error("Acesso negado. Apenas administradores.");
+          toast.error("Acesso negado. Você não tem permissões de acesso.");
         }
       }
     } catch (error) {

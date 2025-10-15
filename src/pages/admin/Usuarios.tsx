@@ -163,15 +163,24 @@ const Usuarios = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      // Remover roles e permissões primeiro
+      await supabase.from("user_roles").delete().eq("user_id", userId);
+      await supabase.from("user_permissions").delete().eq("user_id", userId);
+      
+      // Desativar perfil ao invés de excluir usuário
+      const { error } = await supabase
+        .from("profiles")
+        .update({ ativo: false })
+        .eq("id", userId);
+      
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Usuário excluído com sucesso!");
+      toast.success("Usuário desativado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
     onError: (error: any) => {
-      toast.error("Erro ao excluir usuário: " + error.message);
+      toast.error("Erro ao desativar usuário: " + error.message);
     },
   });
 
