@@ -211,22 +211,22 @@ export const ProductDetailModal = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-[1100px] w-[95vw] p-0 gap-0 overflow-hidden grid lg:grid-cols-[55%_45%]"
+        className="max-w-[1100px] w-[95vw] p-0 gap-0 overflow-hidden grid lg:grid-cols-[1fr_400px]"
         onEscapeKeyDown={handleClose}
         aria-describedby="product-description"
         aria-labelledby="product-title"
       >
         {/* Imagem - Coluna Esquerda */}
-        <div className="relative w-full bg-black flex items-center justify-center min-h-[400px] max-h-[50vh] lg:min-h-[520px] lg:max-h-[520px]">
+        <div className="relative w-full flex items-center justify-center bg-background min-h-[300px] lg:min-h-0">
           {item.imagem ? (
             <img
               src={item.imagem}
               alt={item.nome}
-              className="w-full h-full object-contain"
+              className="w-full h-auto object-contain max-h-[600px]"
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-8xl">
+            <div className="flex items-center justify-center h-full text-6xl">
               🍢
             </div>
           )}
