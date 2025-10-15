@@ -157,6 +157,42 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_neighborhoods: {
+        Row: {
+          ativo: boolean | null
+          cidade: string | null
+          created_at: string | null
+          estado: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          pedido_minimo: number | null
+          taxa_entrega: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cidade?: string | null
+          created_at?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          pedido_minimo?: number | null
+          taxa_entrega?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cidade?: string | null
+          created_at?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          pedido_minimo?: number | null
+          taxa_entrega?: number | null
+        }
+        Relationships: []
+      }
       menu_item_complements: {
         Row: {
           complement_group_id: string
@@ -384,37 +420,112 @@ export type Database = {
       }
       restaurant_config: {
         Row: {
+          aceitar_loja_fechada: boolean | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
           created_at: string | null
+          email: string | null
+          email_notificacao: string | null
           endereco: string
+          estado: string | null
+          exibir_dados_publicos: boolean | null
+          exibir_endereco: boolean | null
+          facebook: string | null
+          habilitar_whatsapp: boolean | null
           horario_funcionamento: Json | null
           id: string
+          instagram: string | null
+          logo_url: string | null
           modo_atendimento: string | null
           nome_restaurante: string
+          numero: string | null
+          razao_social: string | null
+          site: string | null
           status_funcionamento: string | null
+          telefone: string | null
           tempo_entrega: string | null
+          twitter: string | null
+          valor_frete_gratis: number | null
+          valor_pedido_minimo: number | null
+          whatsapp_mensagem: string | null
           whatsapp_oficial: string
+          youtube: string | null
         }
         Insert: {
+          aceitar_loja_fechada?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string | null
+          email?: string | null
+          email_notificacao?: string | null
           endereco?: string
+          estado?: string | null
+          exibir_dados_publicos?: boolean | null
+          exibir_endereco?: boolean | null
+          facebook?: string | null
+          habilitar_whatsapp?: boolean | null
           horario_funcionamento?: Json | null
           id?: string
+          instagram?: string | null
+          logo_url?: string | null
           modo_atendimento?: string | null
           nome_restaurante?: string
+          numero?: string | null
+          razao_social?: string | null
+          site?: string | null
           status_funcionamento?: string | null
+          telefone?: string | null
           tempo_entrega?: string | null
+          twitter?: string | null
+          valor_frete_gratis?: number | null
+          valor_pedido_minimo?: number | null
+          whatsapp_mensagem?: string | null
           whatsapp_oficial?: string
+          youtube?: string | null
         }
         Update: {
+          aceitar_loja_fechada?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string | null
+          email?: string | null
+          email_notificacao?: string | null
           endereco?: string
+          estado?: string | null
+          exibir_dados_publicos?: boolean | null
+          exibir_endereco?: boolean | null
+          facebook?: string | null
+          habilitar_whatsapp?: boolean | null
           horario_funcionamento?: Json | null
           id?: string
+          instagram?: string | null
+          logo_url?: string | null
           modo_atendimento?: string | null
           nome_restaurante?: string
+          numero?: string | null
+          razao_social?: string | null
+          site?: string | null
           status_funcionamento?: string | null
+          telefone?: string | null
           tempo_entrega?: string | null
+          twitter?: string | null
+          valor_frete_gratis?: number | null
+          valor_pedido_minimo?: number | null
+          whatsapp_mensagem?: string | null
           whatsapp_oficial?: string
+          youtube?: string | null
         }
         Relationships: []
       }

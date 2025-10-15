@@ -13,6 +13,7 @@ import Categorias from "./pages/admin/Categorias";
 import Cardapio from "./pages/admin/Cardapio";
 import Complementos from "./pages/admin/Complementos";
 import Usuarios from "./pages/admin/Usuarios";
+import Configuracoes from "./pages/admin/Configuracoes";
 import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -69,6 +70,14 @@ const App = () => (
               element={
                 <ProtectedRoute permission="manage_users">
                   <Usuarios />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="configuracoes"
+              element={
+                <ProtectedRoute permission="manage_config">
+                  <Configuracoes />
                 </ProtectedRoute>
               } 
             />
