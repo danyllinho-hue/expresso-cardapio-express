@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Star, ImageIcon } from "lucide-react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 interface MenuItem {
   id: string;
@@ -41,6 +42,7 @@ const Cardapio = () => {
     preco: "",
     categoria_id: "",
     imagem: "",
+    imagem_thumb: "",
     status: "ativo",
     destaque: false,
   });
@@ -133,6 +135,7 @@ const Cardapio = () => {
       preco: item.preco.toString(),
       categoria_id: item.categoria_id || "",
       imagem: item.imagem || "",
+      imagem_thumb: "",
       status: item.status,
       destaque: item.destaque,
     });
@@ -165,9 +168,14 @@ const Cardapio = () => {
       preco: "",
       categoria_id: "",
       imagem: "",
+      imagem_thumb: "",
       status: "ativo",
       destaque: false,
     });
+  };
+
+  const handleImageUploaded = (imageUrl: string, thumbUrl: string) => {
+    setFormData({ ...formData, imagem: imageUrl, imagem_thumb: thumbUrl });
   };
 
   const filteredItems = selectedCategory === "all" 
@@ -257,27 +265,11 @@ const Cardapio = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="imagem">URL da Imagem</Label>
-                <Input
-                  id="imagem"
-                  value={formData.imagem}
-                  onChange={(e) => setFormData({ ...formData, imagem: e.target.value })}
-                  placeholder="https://exemplo.com/imagem.jpg"
-                />
-                {formData.imagem && (
-                  <div className="mt-2 p-2 border rounded-md">
-                    <img 
-                      src={formData.imagem} 
-                      alt="Preview" 
-                      className="w-full h-40 object-cover rounded"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+              <ImageUpload
+                currentImageUrl={formData.imagem}
+                onImageUploaded={handleImageUploaded}
+                itemName={formData.nome}
+              />
 
               <div className="flex items-center justify-between p-4 border rounded-md">
                 <div className="space-y-0.5">
