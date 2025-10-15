@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, ShoppingCart, Clock, MapPin, Truck, Store } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ShoppingCart } from "lucide-react";
+import { MenuHeader } from "@/components/menu/MenuHeader";
+import { CategoryFilter } from "@/components/menu/CategoryFilter";
+import { MenuItemCard } from "@/components/menu/MenuItemCard";
+import { toast } from "sonner";
 
 interface MenuItem {
   id: string;
@@ -44,30 +44,38 @@ const Index = () => {
   }, []);
 
   const loadData = async () => {
-    // Load config
-    const { data: configData } = await supabase
-      .from("restaurant_config")
-      .select("*")
-      .single();
-    
-    if (configData) setConfig(configData);
+    try {
+      // Load config
+      const { data: configData, error: configError } = await supabase
+        .from("restaurant_config")
+        .select("*")
+        .single();
+      
+      if (configError) throw configError;
+      if (configData) setConfig(configData);
 
-    // Load categories
-    const { data: categoriesData } = await supabase
-      .from("categories")
-      .select("*")
-      .order("ordem");
-    
-    if (categoriesData) setCategories(categoriesData);
+      // Load categories
+      const { data: categoriesData, error: catError } = await supabase
+        .from("categories")
+        .select("*")
+        .order("ordem");
+      
+      if (catError) throw catError;
+      if (categoriesData) setCategories(categoriesData);
 
-    // Load menu items (only active ones for public)
-    const { data: itemsData } = await supabase
-      .from("menu_items")
-      .select("*")
-      .eq("status", "ativo")
-      .order("nome");
-    
-    if (itemsData) setMenuItems(itemsData);
+      // Load menu items (only active ones for public)
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("menu_items")
+        .select("*")
+        .eq("status", "ativo")
+        .order("nome");
+      
+      if (itemsError) throw itemsError;
+      if (itemsData) setMenuItems(itemsData);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      toast.error("Erro ao carregar o cardápio");
+    }
   };
 
   const filteredItems = menuItems.filter(item => {
@@ -83,152 +91,100 @@ const Index = () => {
       setCart(cart.map(c => 
         c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
       ));
+      toast.success(`Quantidade atualizada! ${item.nome}`);
     } else {
       setCart([...cart, { item, quantity: 1 }]);
+      toast.success(`${item.nome} adicionado ao carrinho! 🛒`);
     }
   };
 
   const cartTotal = cart.reduce((sum, c) => sum + (c.item.preco * c.quantity), 0);
   const isOpen = config?.status_funcionamento === "aberto";
+  const highlightedItems = menuItems.filter(item => item.destaque);
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <span className="text-2xl">🍢</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">{config?.nome_restaurante || "Expresso Espetaria"}</h1>
-                <div className="flex items-center gap-3 text-sm">
-                  <Badge variant={isOpen ? "default" : "destructive"} className="gap-1">
-                    <span className={`w-2 h-2 rounded-full ${isOpen ? "bg-green-500" : "bg-red-500"}`} />
-                    {isOpen ? "Aberto" : "Fechado"}
-                  </Badge>
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    {config?.modo_atendimento === "entrega" && <><Truck className="w-4 h-4" /> Entrega</>}
-                    {config?.modo_atendimento === "retirada" && <><Store className="w-4 h-4" /> Retirada</>}
-                    {config?.modo_atendimento === "ambos" && <><Truck className="w-4 h-4" /> Ambos</>}
-                  </span>
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    {config?.tempo_entrega || "30-40 min"}
-                  </span>
-                </div>
-              </div>
+      <MenuHeader 
+        config={config} 
+        searchQuery={searchQuery} 
+        onSearchChange={setSearchQuery} 
+      />
+
+      {/* Category Filter */}
+      <CategoryFilter
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+      />
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8 space-y-12">
+        {/* Destaques Section */}
+        {!selectedCategory && !searchQuery && highlightedItems.length > 0 && (
+          <section className="animate-fade-in">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-3xl font-bold">⭐ Destaques</h2>
             </div>
-            <Link to="/login">
-              <Button variant="outline" size="sm">Admin</Button>
-            </Link>
-          </div>
-
-          {/* Address */}
-          <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
-            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{config?.endereco || "Carregando endereço..."}</span>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar no cardápio..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-      </header>
-
-      {/* Categories */}
-      {categories.length > 0 && (
-        <div className="sticky top-[180px] z-40 bg-card border-b">
-          <div className="container mx-auto px-4 py-3 overflow-x-auto">
-            <div className="flex gap-2">
-              <Button
-                variant={!selectedCategory ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(null)}
-              >
-                Todos
-              </Button>
-              {categories.map(cat => (
-                <Button
-                  key={cat.id}
-                  variant={selectedCategory === cat.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(cat.id)}
-                >
-                  {cat.nome}
-                </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {highlightedItems.slice(0, 3).map(item => (
+                <MenuItemCard
+                  key={item.id}
+                  item={item}
+                  onAddToCart={addToCart}
+                  disabled={!isOpen}
+                />
               ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Menu Items */}
-      <main className="container mx-auto px-4 py-6">
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-xl text-muted-foreground">
-              {menuItems.length === 0 ? "Cardápio em breve! 🍢" : "Nenhum item encontrado"}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map(item => (
-              <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {item.imagem && (
-                  <div className="aspect-video bg-muted relative">
-                    <img
-                      src={item.imagem}
-                      alt={item.nome}
-                      className="w-full h-full object-cover"
-                    />
-                    {item.destaque && (
-                      <Badge className="absolute top-2 right-2">Destaque</Badge>
-                    )}
-                  </div>
-                )}
-                <div className="p-4">
-                  <h3 className="font-semibold text-lg mb-1">{item.nome}</h3>
-                  {item.descricao && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {item.descricao}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold text-primary">
-                      R$ {item.preco.toFixed(2)}
-                    </span>
-                    <Button
-                      size="sm"
-                      onClick={() => addToCart(item)}
-                      disabled={!isOpen}
-                    >
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Adicionar
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+          </section>
         )}
+
+        {/* All Items Section */}
+        <section>
+          {!selectedCategory && !searchQuery && (
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-3xl font-bold">🍽️ Cardápio Completo</h2>
+            </div>
+          )}
+
+          {filteredItems.length === 0 ? (
+            <div className="text-center py-20 animate-fade-in">
+              <div className="text-7xl mb-4">🔍</div>
+              <p className="text-2xl font-semibold mb-2">
+                {menuItems.length === 0 ? "Cardápio em breve!" : "Nenhum item encontrado"}
+              </p>
+              <p className="text-muted-foreground">
+                {menuItems.length === 0 
+                  ? "Estamos preparando delícias para você 🍢" 
+                  : "Tente buscar por outro nome ou categoria"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredItems.map(item => (
+                <MenuItemCard
+                  key={item.id}
+                  item={item}
+                  onAddToCart={addToCart}
+                  disabled={!isOpen}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
-      {/* Cart Button */}
+      {/* Floating Cart Button */}
       {cart.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <Button size="lg" className="shadow-xl gap-2">
+        <div className="fixed bottom-6 right-6 z-50 animate-scale-in">
+          <Button 
+            size="lg" 
+            className="shadow-2xl gap-3 h-14 px-6 hover:scale-105 transition-transform"
+          >
             <ShoppingCart className="w-5 h-5" />
-            Ver Carrinho ({cart.length})
-            <span className="ml-2 font-bold">R$ {cartTotal.toFixed(2)}</span>
+            <span className="font-semibold">Ver Carrinho ({cart.length})</span>
+            <div className="h-6 w-px bg-primary-foreground/20" />
+            <span className="font-bold text-lg">R$ {cartTotal.toFixed(2)}</span>
           </Button>
         </div>
       )}
