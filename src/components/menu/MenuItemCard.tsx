@@ -9,20 +9,25 @@ interface MenuItem {
   descricao: string;
   preco: number;
   imagem: string;
+  categoria_id: string;
   destaque: boolean;
 }
 
 interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem) => void;
+  onItemClick: (item: MenuItem) => void;
   disabled?: boolean;
 }
 
-export const MenuItemCard = ({ item, onAddToCart, disabled }: MenuItemCardProps) => {
+export const MenuItemCard = ({ item, onAddToCart, onItemClick, disabled }: MenuItemCardProps) => {
   return (
-    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in">
+    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in cursor-pointer">
       {/* Imagem */}
-      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+      <div 
+        className="aspect-[4/3] bg-muted relative overflow-hidden"
+        onClick={() => onItemClick(item)}
+      >
         {item.imagem ? (
           <img
             src={item.imagem}
@@ -49,7 +54,7 @@ export const MenuItemCard = ({ item, onAddToCart, disabled }: MenuItemCardProps)
 
       {/* Conteúdo */}
       <div className="p-5 space-y-3">
-        <div>
+        <div onClick={() => onItemClick(item)}>
           <h3 className="font-bold text-lg mb-1.5 line-clamp-1 group-hover:text-primary transition-colors">
             {item.nome}
           </h3>
@@ -62,14 +67,17 @@ export const MenuItemCard = ({ item, onAddToCart, disabled }: MenuItemCardProps)
 
         {/* Preço e Botão */}
         <div className="flex items-center justify-between pt-2">
-          <div>
+          <div onClick={() => onItemClick(item)}>
             <span className="text-2xl font-bold text-primary">
               R$ {item.preco.toFixed(2)}
             </span>
           </div>
           <Button
             size="sm"
-            onClick={() => onAddToCart(item)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToCart(item);
+            }}
             disabled={disabled}
             className="gap-2 shadow-md hover:shadow-lg transition-shadow"
           >

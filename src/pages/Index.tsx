@@ -6,6 +6,7 @@ import { MenuHeader } from "@/components/menu/MenuHeader";
 import { CategoryFilter } from "@/components/menu/CategoryFilter";
 import { MenuItemCard } from "@/components/menu/MenuItemCard";
 import { CartSheet } from "@/components/cart/CartSheet";
+import { ProductDetailModal } from "@/components/menu/ProductDetailModal";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -46,6 +47,8 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItemType[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -93,17 +96,25 @@ const Index = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const addToCart = (item: MenuItem) => {
-    const existingItem = cart.find(c => c.item.id === item.id);
-    if (existingItem) {
-      setCart(cart.map(c => 
-        c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
-      ));
+  const addToCart = (item: MenuItem, quantity: number = 1, notes: string = "") => {
+    const existingItemIndex = cart.findIndex(c => 
+      c.item.id === item.id && c.notes === notes
+    );
+    
+    if (existingItemIndex !== -1) {
+      const newCart = [...cart];
+      newCart[existingItemIndex].quantity += quantity;
+      setCart(newCart);
       toast.success(`Quantidade atualizada! ${item.nome}`);
     } else {
-      setCart([...cart, { item, quantity: 1, notes: "" }]);
+      setCart([...cart, { item, quantity, notes }]);
       toast.success(`${item.nome} adicionado ao carrinho! 🛒`);
     }
+  };
+
+  const handleItemClick = (item: MenuItem) => {
+    setSelectedItem(item);
+    setModalOpen(true);
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
@@ -161,7 +172,8 @@ const Index = () => {
                 <MenuItemCard
                   key={item.id}
                   item={item}
-                  onAddToCart={addToCart}
+                  onAddToCart={(item) => addToCart(item, 1, "")}
+                  onItemClick={handleItemClick}
                   disabled={!isOpen}
                 />
               ))}
@@ -195,7 +207,8 @@ const Index = () => {
                 <MenuItemCard
                   key={item.id}
                   item={item}
-                  onAddToCart={addToCart}
+                  onAddToCart={(item) => addToCart(item, 1, "")}
+                  onItemClick={handleItemClick}
                   disabled={!isOpen}
                 />
               ))}
@@ -203,6 +216,14 @@ const Index = () => {
           )}
         </section>
       </main>
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        item={selectedItem}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onAddToCart={addToCart}
+      />
 
       {/* Cart Sheet */}
       <CartSheet
