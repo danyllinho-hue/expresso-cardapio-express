@@ -12,10 +12,21 @@ interface MenuItem {
   destaque: boolean;
 }
 
+interface SelectedComplement {
+  groupId: string;
+  groupName: string;
+  options: Array<{
+    id: string;
+    name: string;
+    additionalPrice: number;
+  }>;
+}
+
 interface CartItemType {
   item: MenuItem;
   quantity: number;
   notes?: string;
+  complements?: SelectedComplement[];
 }
 
 interface CartItemProps {
@@ -32,7 +43,23 @@ export const CartItem = ({
   onUpdateNotes,
 }: CartItemProps) => {
   const [showNotes, setShowNotes] = useState(!!cartItem.notes);
-  const { item, quantity, notes } = cartItem;
+  const { item, quantity, notes, complements } = cartItem;
+
+  const calculateItemTotal = () => {
+    let total = item.preco;
+    
+    if (complements) {
+      complements.forEach(comp => {
+        comp.options.forEach(opt => {
+          total += opt.additionalPrice;
+        });
+      });
+    }
+    
+    return total;
+  };
+
+  const itemTotal = calculateItemTotal();
 
   return (
     <div className="bg-muted/50 rounded-lg p-4 space-y-3">
@@ -60,6 +87,24 @@ export const CartItem = ({
               <p className="text-sm text-primary font-medium">
                 R$ {item.preco.toFixed(2)}
               </p>
+              
+              {/* Complementos Selecionados */}
+              {complements && complements.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {complements.map((comp) => (
+                    <div key={comp.groupId} className="text-xs text-muted-foreground">
+                      <span className="font-medium">{comp.groupName}:</span>{' '}
+                      {comp.options.map((opt, idx) => (
+                        <span key={opt.id}>
+                          {opt.name}
+                          {opt.additionalPrice > 0 && ` (+R$ ${opt.additionalPrice.toFixed(2)})`}
+                          {idx < comp.options.length - 1 && ', '}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -92,7 +137,7 @@ export const CartItem = ({
             </Button>
             <div className="flex-1" />
             <span className="font-bold text-primary">
-              R$ {(item.preco * quantity).toFixed(2)}
+              R$ {(itemTotal * quantity).toFixed(2)}
             </span>
           </div>
         </div>

@@ -68,6 +68,68 @@ export type Database = {
         }
         Relationships: []
       }
+      complement_groups: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          obrigatorio: boolean
+          ordem: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          obrigatorio?: boolean
+          ordem?: number
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          obrigatorio?: boolean
+          ordem?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
+      complement_options: {
+        Row: {
+          created_at: string | null
+          group_id: string
+          id: string
+          nome: string
+          ordem: number
+          valor_adicional: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          group_id: string
+          id?: string
+          nome: string
+          ordem?: number
+          valor_adicional?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          group_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          valor_adicional?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complement_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "complement_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string | null
@@ -94,6 +156,42 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: []
+      }
+      menu_item_complements: {
+        Row: {
+          complement_group_id: string
+          created_at: string | null
+          id: string
+          menu_item_id: string
+        }
+        Insert: {
+          complement_group_id: string
+          created_at?: string | null
+          id?: string
+          menu_item_id: string
+        }
+        Update: {
+          complement_group_id?: string
+          created_at?: string | null
+          id?: string
+          menu_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_complements_complement_group_id_fkey"
+            columns: ["complement_group_id"]
+            isOneToOne: false
+            referencedRelation: "complement_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_complements_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       menu_items: {
         Row: {

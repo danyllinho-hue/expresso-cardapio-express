@@ -14,10 +14,21 @@ interface MenuItem {
   preco: number;
 }
 
+interface SelectedComplement {
+  groupId: string;
+  groupName: string;
+  options: Array<{
+    id: string;
+    name: string;
+    additionalPrice: number;
+  }>;
+}
+
 interface CartItemType {
   item: MenuItem;
   quantity: number;
   notes?: string;
+  complements?: SelectedComplement[];
 }
 
 interface CheckoutFormProps {
@@ -131,16 +142,39 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
       {/* Order Summary */}
       <div className="bg-muted/50 rounded-lg p-4 space-y-2">
         <h3 className="font-semibold mb-3">Resumo do Pedido</h3>
-        {cart.map((cartItem) => (
-          <div key={cartItem.item.id} className="flex justify-between text-sm">
-            <span>
-              {cartItem.quantity}x {cartItem.item.nome}
-            </span>
-            <span className="font-medium">
-              R$ {(cartItem.item.preco * cartItem.quantity).toFixed(2)}
-            </span>
-          </div>
-        ))}
+        {cart.map((cartItem, index) => {
+          const itemTotal = cartItem.item.preco + 
+            (cartItem.complements?.reduce((sum, comp) => 
+              sum + comp.options.reduce((optSum, opt) => optSum + opt.additionalPrice, 0), 0
+            ) || 0);
+          
+          return (
+            <div key={`${cartItem.item.id}-${index}`} className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span>
+                  {cartItem.quantity}x {cartItem.item.nome}
+                </span>
+                <span className="font-medium">
+                  R$ {(itemTotal * cartItem.quantity).toFixed(2)}
+                </span>
+              </div>
+              {cartItem.complements && cartItem.complements.length > 0 && (
+                <div className="pl-4 text-xs text-muted-foreground space-y-0.5">
+                  {cartItem.complements.map((comp) => (
+                    <div key={comp.groupId}>
+                      {comp.groupName}: {comp.options.map(opt => opt.name).join(', ')}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {cartItem.notes && (
+                <div className="pl-4 text-xs text-muted-foreground">
+                  Obs: {cartItem.notes}
+                </div>
+              )}
+            </div>
+          );
+        })}
         <Separator className="my-2" />
         <div className="flex justify-between font-bold text-primary">
           <span>Total</span>

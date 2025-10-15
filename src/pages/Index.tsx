@@ -19,10 +19,21 @@ interface MenuItem {
   destaque: boolean;
 }
 
+interface SelectedComplement {
+  groupId: string;
+  groupName: string;
+  options: Array<{
+    id: string;
+    name: string;
+    additionalPrice: number;
+  }>;
+}
+
 interface CartItemType {
   item: MenuItem;
   quantity: number;
   notes?: string;
+  complements?: SelectedComplement[];
 }
 
 interface Category {
@@ -96,9 +107,13 @@ const Index = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const addToCart = (item: MenuItem, quantity: number = 1, notes: string = "") => {
+  const addToCart = (item: MenuItem, quantity: number = 1, notes: string = "", complements?: SelectedComplement[]) => {
+    const complementsKey = JSON.stringify(complements || []);
+    
     const existingItemIndex = cart.findIndex(c => 
-      c.item.id === item.id && c.notes === notes
+      c.item.id === item.id && 
+      c.notes === notes &&
+      JSON.stringify(c.complements || []) === complementsKey
     );
     
     if (existingItemIndex !== -1) {
@@ -107,7 +122,7 @@ const Index = () => {
       setCart(newCart);
       toast.success(`Quantidade atualizada! ${item.nome}`);
     } else {
-      setCart([...cart, { item, quantity, notes }]);
+      setCart([...cart, { item, quantity, notes, complements }]);
       toast.success(`${item.nome} adicionado ao carrinho! 🛒`);
     }
   };
@@ -139,7 +154,19 @@ const Index = () => {
     toast.success("Carrinho limpo!");
   };
 
-  const cartTotal = cart.reduce((sum, c) => sum + (c.item.preco * c.quantity), 0);
+  const cartTotal = cart.reduce((sum, c) => {
+    let itemTotal = c.item.preco;
+    
+    if (c.complements) {
+      c.complements.forEach(comp => {
+        comp.options.forEach(opt => {
+          itemTotal += opt.additionalPrice;
+        });
+      });
+    }
+    
+    return sum + (itemTotal * c.quantity);
+  }, 0);
   const isOpen = config?.status_funcionamento === "aberto";
   const highlightedItems = menuItems.filter(item => item.destaque);
 

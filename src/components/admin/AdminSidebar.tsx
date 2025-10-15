@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   FolderTree,
   UtensilsCrossed,
+  ListPlus,
   Users,
   LogOut,
 } from "lucide-react";
@@ -40,6 +41,12 @@ const menuItems = [
     title: "Cardápio", 
     url: "/admin/cardapio", 
     icon: UtensilsCrossed,
+    permission: "manage_menu_items",
+  },
+  { 
+    title: "Complementos", 
+    url: "/admin/complementos", 
+    icon: ListPlus,
     permission: "manage_menu_items",
   },
   { 

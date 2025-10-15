@@ -10,6 +10,7 @@ import Admin from "./pages/Admin";
 import Dashboard from "./pages/admin/Dashboard";
 import Categorias from "./pages/admin/Categorias";
 import Cardapio from "./pages/admin/Cardapio";
+import Complementos from "./pages/admin/Complementos";
 import Usuarios from "./pages/admin/Usuarios";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -41,6 +42,14 @@ const App = () => (
               element={
                 <ProtectedRoute permission="manage_menu_items">
                   <Cardapio />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="complementos" 
+              element={
+                <ProtectedRoute permission="manage_menu_items">
+                  <Complementos />
                 </ProtectedRoute>
               } 
             />

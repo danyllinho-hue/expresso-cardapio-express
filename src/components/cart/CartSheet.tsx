@@ -15,10 +15,21 @@ interface MenuItem {
   destaque: boolean;
 }
 
+interface SelectedComplement {
+  groupId: string;
+  groupName: string;
+  options: Array<{
+    id: string;
+    name: string;
+    additionalPrice: number;
+  }>;
+}
+
 interface CartItemType {
   item: MenuItem;
   quantity: number;
   notes?: string;
+  complements?: SelectedComplement[];
 }
 
 interface CartSheetProps {
@@ -44,7 +55,19 @@ export const CartSheet = ({
 }: CartSheetProps) => {
   const [showCheckout, setShowCheckout] = useState(false);
 
-  const subtotal = cart.reduce((sum, c) => sum + (c.item.preco * c.quantity), 0);
+  const subtotal = cart.reduce((sum, c) => {
+    let itemTotal = c.item.preco;
+    
+    if (c.complements) {
+      c.complements.forEach(comp => {
+        comp.options.forEach(opt => {
+          itemTotal += opt.additionalPrice;
+        });
+      });
+    }
+    
+    return sum + (itemTotal * c.quantity);
+  }, 0);
   const deliveryFee = subtotal > 0 ? 5.00 : 0; // Taxa fixa de entrega
   const total = subtotal + deliveryFee;
 
@@ -109,9 +132,9 @@ export const CartSheet = ({
           <>
             {/* Cart Items */}
             <div className="flex-1 space-y-4 py-6">
-              {cart.map((cartItem) => (
+              {cart.map((cartItem, index) => (
                 <CartItem
-                  key={cartItem.item.id}
+                  key={`${cartItem.item.id}-${index}`}
                   cartItem={cartItem}
                   onUpdateQuantity={onUpdateQuantity}
                   onRemoveItem={onRemoveItem}
