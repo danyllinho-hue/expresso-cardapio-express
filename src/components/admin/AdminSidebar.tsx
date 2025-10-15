@@ -15,6 +15,7 @@ import {
 import {
   LayoutDashboard,
   FolderTree,
+  UtensilsCrossed,
   Users,
   LogOut,
 } from "lucide-react";
@@ -36,7 +37,13 @@ const menuItems = [
     permission: "manage_categories",
   },
   { 
-    title: "Usuários", 
+    title: "Cardápio", 
+    url: "/admin/cardapio", 
+    icon: UtensilsCrossed,
+    permission: "manage_menu_items",
+  },
+  { 
+    title: "Usuários",
     url: "/admin/usuarios", 
     icon: Users,
     permission: "manage_users",
