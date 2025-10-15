@@ -5,6 +5,7 @@ import { ShoppingCart } from "lucide-react";
 import { MenuHeader } from "@/components/menu/MenuHeader";
 import { CategoryFilter } from "@/components/menu/CategoryFilter";
 import { MenuItemCard } from "@/components/menu/MenuItemCard";
+import { CartSheet } from "@/components/cart/CartSheet";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -15,6 +16,12 @@ interface MenuItem {
   imagem: string;
   categoria_id: string;
   destaque: boolean;
+}
+
+interface CartItemType {
+  item: MenuItem;
+  quantity: number;
+  notes?: string;
 }
 
 interface Category {
@@ -37,7 +44,8 @@ const Index = () => {
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [cart, setCart] = useState<{ item: MenuItem; quantity: number }[]>([]);
+  const [cart, setCart] = useState<CartItemType[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -93,9 +101,31 @@ const Index = () => {
       ));
       toast.success(`Quantidade atualizada! ${item.nome}`);
     } else {
-      setCart([...cart, { item, quantity: 1 }]);
+      setCart([...cart, { item, quantity: 1, notes: "" }]);
       toast.success(`${item.nome} adicionado ao carrinho! 🛒`);
     }
+  };
+
+  const updateQuantity = (itemId: string, quantity: number) => {
+    setCart(cart.map(c => 
+      c.item.id === itemId ? { ...c, quantity } : c
+    ));
+  };
+
+  const removeItem = (itemId: string) => {
+    setCart(cart.filter(c => c.item.id !== itemId));
+    toast.success("Item removido do carrinho");
+  };
+
+  const updateNotes = (itemId: string, notes: string) => {
+    setCart(cart.map(c => 
+      c.item.id === itemId ? { ...c, notes } : c
+    ));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    toast.success("Carrinho limpo!");
   };
 
   const cartTotal = cart.reduce((sum, c) => sum + (c.item.preco * c.quantity), 0);
@@ -174,12 +204,25 @@ const Index = () => {
         </section>
       </main>
 
+      {/* Cart Sheet */}
+      <CartSheet
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        cart={cart}
+        onUpdateQuantity={updateQuantity}
+        onRemoveItem={removeItem}
+        onUpdateNotes={updateNotes}
+        onClearCart={clearCart}
+        isOpen={isOpen}
+      />
+
       {/* Floating Cart Button */}
       {cart.length > 0 && (
         <div className="fixed bottom-6 right-6 z-50 animate-scale-in">
           <Button 
             size="lg" 
             className="shadow-2xl gap-3 h-14 px-6 hover:scale-105 transition-transform"
+            onClick={() => setCartOpen(true)}
           >
             <ShoppingCart className="w-5 h-5" />
             <span className="font-semibold">Ver Carrinho ({cart.length})</span>
