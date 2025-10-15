@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,27 @@ export const ProductDetailModal = ({
 }: ProductDetailModalProps) => {
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
+  const imageRef = useRef<HTMLImageElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleImageLoad = () => {
+      if (imageRef.current && modalRef.current) {
+        const imageHeight = imageRef.current.offsetHeight;
+        modalRef.current.style.height = `${imageHeight}px`;
+      }
+    };
+
+    const img = imageRef.current;
+    if (img) {
+      if (img.complete) {
+        handleImageLoad();
+      } else {
+        img.addEventListener('load', handleImageLoad);
+        return () => img.removeEventListener('load', handleImageLoad);
+      }
+    }
+  }, [item, open]);
 
   const handleClose = () => {
     setQuantity(1);
@@ -53,22 +74,24 @@ export const ProductDetailModal = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-[1100px] w-[95vw] p-0 gap-0 max-h-[90vh] overflow-hidden grid lg:grid-cols-[60%_40%]"
+        ref={modalRef}
+        className="max-w-[1100px] w-[95vw] p-0 gap-0 overflow-hidden grid lg:grid-cols-[1fr_400px] h-auto"
         onEscapeKeyDown={handleClose}
         aria-describedby="product-description"
         aria-labelledby="product-title"
       >
         {/* Imagem - Coluna Esquerda */}
-        <div className="relative w-full h-full bg-black flex items-center justify-center lg:max-h-[90vh]">
+        <div className="relative w-full h-auto bg-black flex items-center justify-center max-h-[50vh] lg:max-h-none">
           {item.imagem ? (
             <img
+              ref={imageRef}
               src={item.imagem}
               alt={item.nome}
-              className="w-full h-full object-contain"
+              className="w-full h-auto object-contain block"
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-8xl">
+            <div className="w-full h-full flex items-center justify-center text-8xl min-h-[400px]">
               🍢
             </div>
           )}
@@ -83,7 +106,7 @@ export const ProductDetailModal = ({
         </div>
 
         {/* Conteúdo - Coluna Direita */}
-        <div className="p-6 space-y-4 overflow-y-auto max-h-[90vh]">
+        <div className="p-6 space-y-4 overflow-y-auto h-auto flex flex-col justify-between">
           <DialogHeader>
             <DialogTitle id="product-title" className="text-2xl font-bold text-foreground">
               {item.nome}
