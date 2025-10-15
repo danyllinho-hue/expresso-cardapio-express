@@ -21,6 +21,7 @@ interface MenuItem {
   preco: number;
   categoria_id: string | null;
   imagem: string | null;
+  image_thumb_url: string | null;
   status: string;
   destaque: boolean;
 }
@@ -94,6 +95,7 @@ const Cardapio = () => {
       preco: parseFloat(formData.preco),
       categoria_id: formData.categoria_id,
       imagem: formData.imagem || null,
+      image_thumb_url: formData.imagem_thumb || null,
       status: formData.status,
       destaque: formData.destaque,
     };
@@ -135,7 +137,7 @@ const Cardapio = () => {
       preco: item.preco.toString(),
       categoria_id: item.categoria_id || "",
       imagem: item.imagem || "",
-      imagem_thumb: "",
+      imagem_thumb: item.image_thumb_url || "",
       status: item.status,
       destaque: item.destaque,
     });
@@ -356,9 +358,9 @@ const Cardapio = () => {
                 {filteredItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>
-                      {item.imagem ? (
+                      {item.image_thumb_url || item.imagem ? (
                         <img 
-                          src={item.imagem} 
+                          src={item.image_thumb_url || item.imagem || ""} 
                           alt={item.nome}
                           className="w-12 h-12 object-cover rounded"
                           onError={(e) => {

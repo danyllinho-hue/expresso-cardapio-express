@@ -2,8 +2,9 @@ import { useState, useRef, DragEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface ImageUploadProps {
@@ -17,6 +18,8 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, itemName }: ImageUpload
   const [progress, setProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
   const [dragActive, setDragActive] = useState(false);
+  const [showUrlImport, setShowUrlImport] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateSlug = (name: string) => {
@@ -178,9 +181,87 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, itemName }: ImageUpload
     onImageUploaded("", "");
   };
 
+  const handleImportFromUrl = async () => {
+    if (!importUrl) {
+      toast.error("Digite uma URL válida");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setProgress(10);
+
+      // Fazer download da imagem
+      const response = await fetch(importUrl);
+      if (!response.ok) throw new Error("Não foi possível baixar a imagem");
+      
+      const blob = await response.blob();
+      setProgress(30);
+
+      // Verificar se é uma imagem válida
+      if (!blob.type.match(/^image\/(jpeg|png|webp|jpg)$/)) {
+        toast.error("URL não contém uma imagem válida (JPG, PNG ou WEBP)");
+        return;
+      }
+
+      // Converter blob para File
+      const file = new File([blob], "imported-image.jpg", { type: blob.type });
+      
+      // Usar a função existente de upload
+      await handleFileUpload(file);
+      
+      setShowUrlImport(false);
+      setImportUrl("");
+    } catch (error) {
+      console.error("Erro ao importar imagem:", error);
+      toast.error("Não foi possível importar a imagem da URL");
+      setUploading(false);
+      setProgress(0);
+    }
+  };
+
   return (
     <div className="space-y-2">
-      <Label htmlFor="image-upload">Imagem do Produto</Label>
+      <div className="flex items-center justify-between">
+        <Label htmlFor="image-upload">Imagem do Produto</Label>
+        {!previewUrl && currentImageUrl && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowUrlImport(!showUrlImport)}
+          >
+            <LinkIcon className="w-4 h-4 mr-2" />
+            Importar de URL
+          </Button>
+        )}
+      </div>
+
+      {showUrlImport && (
+        <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+          <Label htmlFor="import-url">URL da Imagem Externa</Label>
+          <div className="flex gap-2">
+            <Input
+              id="import-url"
+              type="url"
+              placeholder="https://exemplo.com/imagem.jpg"
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              disabled={uploading}
+            />
+            <Button
+              type="button"
+              onClick={handleImportFromUrl}
+              disabled={uploading || !importUrl}
+            >
+              Importar
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A imagem será baixada, otimizada e armazenada no seu domínio
+          </p>
+        </div>
+      )}
       
       {!previewUrl ? (
         <div

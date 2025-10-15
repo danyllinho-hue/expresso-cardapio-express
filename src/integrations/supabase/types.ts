@@ -102,6 +102,7 @@ export type Database = {
           descricao: string | null
           destaque: boolean | null
           id: string
+          image_thumb_url: string | null
           imagem: string | null
           nome: string
           preco: number
@@ -113,6 +114,7 @@ export type Database = {
           descricao?: string | null
           destaque?: boolean | null
           id?: string
+          image_thumb_url?: string | null
           imagem?: string | null
           nome: string
           preco: number
@@ -124,6 +126,7 @@ export type Database = {
           descricao?: string | null
           destaque?: boolean | null
           id?: string
+          image_thumb_url?: string | null
           imagem?: string | null
           nome?: string
           preco?: number
