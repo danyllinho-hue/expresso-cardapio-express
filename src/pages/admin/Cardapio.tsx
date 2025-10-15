@@ -31,9 +31,18 @@ interface Category {
   nome: string;
 }
 
+interface ComplementGroup {
+  id: string;
+  nome: string;
+  tipo: string;
+  obrigatorio: boolean;
+}
+
 const Cardapio = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [complementGroups, setComplementGroups] = useState<ComplementGroup[]>([]);
+  const [selectedComplements, setSelectedComplements] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -51,6 +60,7 @@ const Cardapio = () => {
   useEffect(() => {
     loadCategories();
     loadMenuItems();
+    loadComplementGroups();
   }, []);
 
   const loadCategories = async () => {
@@ -65,6 +75,20 @@ const Cardapio = () => {
     }
 
     setCategories(data || []);
+  };
+
+  const loadComplementGroups = async () => {
+    const { data, error } = await supabase
+      .from("complement_groups")
+      .select("id, nome, tipo, obrigatorio")
+      .order("ordem");
+
+    if (error) {
+      toast.error("Erro ao carregar grupos de complementos");
+      return;
+    }
+
+    setComplementGroups(data || []);
   };
 
   const loadMenuItems = async () => {
@@ -100,6 +124,8 @@ const Cardapio = () => {
       destaque: formData.destaque,
     };
 
+    let itemId: string;
+
     if (editingItem) {
       const { error } = await supabase
         .from("menu_items")
@@ -111,25 +137,53 @@ const Cardapio = () => {
         return;
       }
 
+      itemId = editingItem.id;
+
+      // Delete existing complement links
+      await supabase
+        .from("menu_item_complements")
+        .delete()
+        .eq("menu_item_id", itemId);
+
       toast.success("Item atualizado com sucesso! ✅");
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("menu_items")
-        .insert([itemData]);
+        .insert([itemData])
+        .select()
+        .single();
 
-      if (error) {
+      if (error || !data) {
         toast.error("Erro ao criar item");
         return;
       }
 
+      itemId = data.id;
       toast.success("Item criado com sucesso! ✅");
+    }
+
+    // Save complement links
+    if (selectedComplements.length > 0) {
+      const complementLinks = selectedComplements.map(groupId => ({
+        menu_item_id: itemId,
+        complement_group_id: groupId,
+      }));
+
+      const { error } = await supabase
+        .from("menu_item_complements")
+        .insert(complementLinks);
+
+      if (error) {
+        toast.error("Erro ao vincular complementos");
+        return;
+      }
     }
 
     handleDialogClose();
     loadMenuItems();
   };
 
-  const handleEdit = (item: MenuItem) => {
+  const handleEdit = async (item: MenuItem) => {
     setEditingItem(item);
     setFormData({
       nome: item.nome,
@@ -141,6 +195,17 @@ const Cardapio = () => {
       status: item.status,
       destaque: item.destaque,
     });
+
+    // Load existing complement links
+    const { data } = await supabase
+      .from("menu_item_complements")
+      .select("complement_group_id")
+      .eq("menu_item_id", item.id);
+
+    if (data) {
+      setSelectedComplements(data.map(link => link.complement_group_id));
+    }
+
     setIsDialogOpen(true);
   };
 
@@ -164,6 +229,7 @@ const Cardapio = () => {
   const handleDialogClose = () => {
     setIsDialogOpen(false);
     setEditingItem(null);
+    setSelectedComplements([]);
     setFormData({
       nome: "",
       descricao: "",
@@ -303,6 +369,47 @@ const Cardapio = () => {
                     setFormData({ ...formData, destaque: checked })
                   }
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Grupos de Complementos</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Selecione os grupos de opções que o cliente poderá escolher (ex: Ponto da Carne, Açúcar, Gelo)
+                </p>
+                <div className="border rounded-md p-4 space-y-2 max-h-[200px] overflow-y-auto">
+                  {complementGroups.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhum grupo de complementos cadastrado.
+                    </p>
+                  ) : (
+                    complementGroups.map((group) => (
+                      <label
+                        key={group.id}
+                        className="flex items-start gap-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedComplements.includes(group.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedComplements([...selectedComplements, group.id]);
+                            } else {
+                              setSelectedComplements(selectedComplements.filter(id => id !== group.id));
+                            }
+                          }}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{group.nome}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {group.tipo === 'radio' ? 'Seleção única' : 'Múltipla escolha'}
+                            {group.obrigatorio && ' • Obrigatório'}
+                          </div>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-2 justify-end pt-4">
