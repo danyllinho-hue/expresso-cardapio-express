@@ -366,66 +366,141 @@ _Sistema Expresso Espetaria_ 🍢`;
               Nenhum pedido encontrado
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>WhatsApp</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Ações Rápidas</TableHead>
-                  <TableHead>Detalhes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-mono text-xs">
-                      #{order.id.slice(0, 8)}
-                    </TableCell>
-                    <TableCell>{order.customers?.nome || "N/A"}</TableCell>
-                    <TableCell>
-                      <a
-                        href={`https://wa.me/55${formatWhatsApp(order.customers?.whatsapp || "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {order.customers?.whatsapp || "N/A"}
-                      </a>
-                    </TableCell>
-                    <TableCell>R$ {order.total.toFixed(2)}</TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell>
-                      {new Date(order.created_at).toLocaleString("pt-BR")}
-                    </TableCell>
-                    <TableCell>
-                      <OrderStatusActions order={order} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openOrderDetails(order)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => sendWhatsAppToCustomer(order)}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>WhatsApp</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Pendente</TableHead>
+                    <TableHead>Aprovado</TableHead>
+                    <TableHead>Em Produção</TableHead>
+                    <TableHead>Entregando</TableHead>
+                    <TableHead>Detalhes</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-mono text-xs">
+                        #{order.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell>{order.customers?.nome || "N/A"}</TableCell>
+                      <TableCell>
+                        <a
+                          href={`https://wa.me/55${formatWhatsApp(order.customers?.whatsapp || "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline text-sm"
+                        >
+                          {order.customers?.whatsapp || "N/A"}
+                        </a>
+                      </TableCell>
+                      <TableCell className="font-medium">R$ {order.total.toFixed(2)}</TableCell>
+                      
+                      {/* Coluna PENDENTE */}
+                      <TableCell>
+                        {order.status === 'pendente' ? (
+                          <div className="flex flex-col gap-1">
+                            <Button 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => updateOrderStatus(order.id, 'em_preparo', order)}
+                            >
+                              ✅ Aceitar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              className="w-full"
+                              onClick={() => updateOrderStatus(order.id, 'cancelado', order)}
+                            >
+                              ❌ Cancelar
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Coluna APROVADO (em_preparo) */}
+                      <TableCell>
+                        {order.status === 'em_preparo' ? (
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(order.status)}
+                            <Button 
+                              size="sm"
+                              className="w-full mt-1"
+                              onClick={() => updateOrderStatus(order.id, 'enviado', order)}
+                            >
+                              🚚 Enviar
+                            </Button>
+                          </div>
+                        ) : order.status === 'enviado' || order.status === 'concluido' ? (
+                          <span className="text-green-600 text-xs">✓</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Coluna EM PRODUÇÃO (continuação do aprovado) */}
+                      <TableCell>
+                        {order.status === 'em_preparo' ? (
+                          <span className="text-xs text-muted-foreground">Em preparação...</span>
+                        ) : order.status === 'enviado' || order.status === 'concluido' ? (
+                          <span className="text-green-600 text-xs">✓</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Coluna ENTREGANDO */}
+                      <TableCell>
+                        {order.status === 'enviado' ? (
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(order.status)}
+                            <Button 
+                              size="sm"
+                              className="w-full mt-1"
+                              onClick={() => updateOrderStatus(order.id, 'concluido', order)}
+                            >
+                              ✅ Concluir
+                            </Button>
+                          </div>
+                        ) : order.status === 'concluido' ? (
+                          getStatusBadge(order.status)
+                        ) : order.status === 'cancelado' ? (
+                          getStatusBadge(order.status)
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openOrderDetails(order)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => sendWhatsAppToCustomer(order)}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

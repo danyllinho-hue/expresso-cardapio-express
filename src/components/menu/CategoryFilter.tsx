@@ -21,15 +21,15 @@ export const CategoryFilter = ({
   if (categories.length === 0) return null;
 
   return (
-    <div className="sticky top-[200px] z-40 bg-card/95 backdrop-blur-lg border-b shadow-sm">
+    <div className="sticky top-[80px] md:top-[200px] z-40 bg-card/95 backdrop-blur-lg border-b shadow-sm">
       <ScrollArea className="w-full">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex gap-2 pb-2">
+          <div className="flex gap-2 pb-2 overflow-x-auto">
             <Button
               variant={!selectedCategory ? "default" : "outline"}
               size="sm"
               onClick={() => onSelectCategory(null)}
-              className="shrink-0 shadow-sm transition-all hover:scale-105"
+              className="shrink-0 shadow-sm transition-all hover:scale-105 whitespace-nowrap"
             >
               🔥 Todos
             </Button>
@@ -39,7 +39,7 @@ export const CategoryFilter = ({
                 variant={selectedCategory === cat.id ? "default" : "outline"}
                 size="sm"
                 onClick={() => onSelectCategory(cat.id)}
-                className="shrink-0 shadow-sm transition-all hover:scale-105"
+                className="shrink-0 shadow-sm transition-all hover:scale-105 whitespace-nowrap"
               >
                 {cat.nome}
               </Button>

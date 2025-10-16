@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { usePermissions } from "@/contexts/PermissionsContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
   SidebarContent,
@@ -72,15 +73,22 @@ const menuItems = [
 ];
 
 export function AdminSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpen } = useSidebar();
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const isCollapsed = state === "collapsed";
+  const isMobile = useIsMobile();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logout realizado com sucesso!");
     navigate("/login");
+  };
+  
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpen(false);
+    }
   };
 
   return (
@@ -114,6 +122,7 @@ export function AdminSidebar() {
                       <NavLink
                         to={item.url}
                         end={item.end}
+                        onClick={handleLinkClick}
                         className={({ isActive }) =>
                           isActive
                             ? "bg-muted text-primary font-medium"
