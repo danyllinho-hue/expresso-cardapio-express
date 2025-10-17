@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -113,7 +112,6 @@ const Cardapio = () => {
       return;
     }
 
-    // Validate price
     const preco = parseFloat(formData.preco);
     if (isNaN(preco) || preco <= 0) {
       toast.error("Preço deve ser maior que zero");
@@ -146,7 +144,6 @@ const Cardapio = () => {
 
       itemId = editingItem.id;
 
-      // Delete existing complement links
       await supabase
         .from("menu_item_complements")
         .delete()
@@ -169,7 +166,6 @@ const Cardapio = () => {
       toast.success("Item criado com sucesso! ✅");
     }
 
-    // Save complement links
     if (selectedComplements.length > 0) {
       const complementLinks = selectedComplements.map(groupId => ({
         menu_item_id: itemId,
@@ -203,7 +199,6 @@ const Cardapio = () => {
       destaque: item.destaque,
     });
 
-    // Load existing complement links
     const { data } = await supabase
       .from("menu_item_complements")
       .select("complement_group_id")
@@ -262,6 +257,12 @@ const Cardapio = () => {
     const category = categories.find(c => c.id === categoryId);
     return category?.nome || "-";
   };
+
+  // Agrupar itens por categoria
+  const itemsByCategory = categories.map(category => ({
+    category,
+    items: filteredItems.filter(item => item.categoria_id === category.id)
+  })).filter(group => group.items.length > 0);
 
   return (
     <div className="space-y-6">
@@ -381,7 +382,7 @@ const Cardapio = () => {
               <div className="space-y-2">
                 <Label>Grupos de Complementos</Label>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Selecione os grupos de opções que o cliente poderá escolher (ex: Ponto da Carne, Açúcar, Gelo)
+                  Selecione os grupos de opções que o cliente poderá escolher
                 </p>
                 <div className="border rounded-md p-4 space-y-2 max-h-[200px] overflow-y-auto">
                   {complementGroups.length === 0 ? (
@@ -451,83 +452,85 @@ const Cardapio = () => {
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-8">
           {filteredItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhum item cadastrado ainda. Crie o primeiro!
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Imagem</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Preço</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      {item.image_thumb_url || item.imagem ? (
-                        <img 
-                          src={item.image_thumb_url || item.imagem || ""} 
-                          alt={item.nome}
-                          className="w-12 h-12 object-cover rounded"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.nome}</span>
-                        {item.destaque && (
-                          <Star className="w-4 h-4 fill-primary text-primary" />
+            itemsByCategory.map(({ category, items }) => (
+              <div key={category.id} className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <h3 className="text-xl font-semibold">{category.nome}</h3>
+                  <Badge variant="secondary">{items.length} {items.length === 1 ? 'item' : 'itens'}</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {items.map((item) => (
+                    <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                      <div className="aspect-video relative bg-muted">
+                        {item.image_thumb_url || item.imagem ? (
+                          <img 
+                            src={item.image_thumb_url || item.imagem || ""} 
+                            alt={item.nome}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="w-12 h-12 text-muted-foreground" />
+                          </div>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {getCategoryName(item.categoria_id)}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      R$ {item.preco.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={item.status === "ativo" ? "default" : "secondary"}>
-                        {item.status === "ativo" ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(item)}
+                        {item.destaque && (
+                          <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full flex items-center gap-1 text-xs">
+                            <Star className="w-3 h-3 fill-current" />
+                            Destaque
+                          </div>
+                        )}
+                        <Badge 
+                          variant={item.status === "ativo" ? "default" : "secondary"}
+                          className="absolute bottom-2 left-2"
                         >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                          {item.status === "ativo" ? "Ativo" : "Inativo"}
+                        </Badge>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      <CardContent className="p-4 space-y-3">
+                        <div>
+                          <h4 className="font-semibold text-lg">{item.nome}</h4>
+                          {item.descricao && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {item.descricao}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold text-primary">
+                            R$ {item.preco.toFixed(2)}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(item)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))
           )}
         </CardContent>
       </Card>

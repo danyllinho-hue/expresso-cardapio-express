@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { UserPlus, Loader2, Shield, Users, ChefHat, Headset, Power, Trash2 } from "lucide-react";
+import { UserPlus, Loader2, Shield, Users, ChefHat, Headset, Power, Trash2, Pencil } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -63,6 +63,8 @@ const ROLE_TEMPLATES = {
 const Usuarios = () => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -74,29 +76,35 @@ const Usuarios = () => {
     queryFn: async () => {
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("*");
+        .select("*")
+        .eq("ativo", true);
 
-      const usersWithRoles = await Promise.all(
+      const usersWithRolesAndPerms = await Promise.all(
         (profiles || []).map(async (profile) => {
           const { data: roles } = await supabase
             .from("user_roles")
             .select("role")
             .eq("user_id", profile.id);
 
+          const { data: permissions } = await supabase
+            .from("user_permissions")
+            .select("permission")
+            .eq("user_id", profile.id);
+
           return {
             ...profile,
             role: roles?.[0]?.role || "user",
+            permissions: permissions?.map(p => p.permission) || [],
           };
         })
       );
 
-      return usersWithRoles;
+      return usersWithRolesAndPerms;
     },
   });
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      // Criar usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -109,14 +117,12 @@ const Usuarios = () => {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erro ao criar usuário");
 
-      // Atribuir role
       const { error: roleError } = await supabase
         .from("user_roles")
         .insert([{ user_id: authData.user.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
 
       if (roleError) throw roleError;
 
-      // Atribuir permissões
       if (selectedPermissions.length > 0) {
         const { error: permError } = await supabase
           .from("user_permissions")
@@ -143,6 +149,71 @@ const Usuarios = () => {
     },
   });
 
+  const updateUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingUserId) throw new Error("ID do usuário não encontrado");
+
+      // Atualizar email no perfil
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ email: email })
+        .eq("id", editingUserId);
+
+      if (profileError) throw profileError;
+
+      // Atualizar role
+      await supabase.from("user_roles").delete().eq("user_id", editingUserId);
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert([{ user_id: editingUserId, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
+
+      if (roleError) throw roleError;
+
+      // Atualizar permissões
+      await supabase.from("user_permissions").delete().eq("user_id", editingUserId);
+      if (selectedPermissions.length > 0) {
+        const { error: permError } = await supabase
+          .from("user_permissions")
+          .insert(
+            selectedPermissions.map(permission => ({
+              user_id: editingUserId,
+              permission,
+            }))
+          );
+
+        if (permError) throw permError;
+      }
+
+      // Atualizar email e senha no auth.users (requer admin API)
+      if (email || senha) {
+        const updates: any = {};
+        if (email) updates.email = email;
+        if (senha) updates.password = senha;
+
+        const { error: authError } = await supabase.auth.admin.updateUserById(
+          editingUserId,
+          updates
+        );
+
+        if (authError) {
+          console.warn("Não foi possível atualizar email/senha:", authError);
+          toast.info("Email e função atualizados. Para alterar a senha, peça ao usuário para usar recuperação de senha.");
+        }
+      }
+
+      return true;
+    },
+    onSuccess: () => {
+      toast.success("Usuário atualizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao atualizar usuário");
+    },
+  });
+
   const toggleUserStatusMutation = useMutation({
     mutationFn: async ({ userId, currentStatus }: { userId: string; currentStatus: boolean }) => {
       const { error } = await supabase
@@ -163,11 +234,9 @@ const Usuarios = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Remover roles e permissões primeiro
       await supabase.from("user_roles").delete().eq("user_id", userId);
       await supabase.from("user_permissions").delete().eq("user_id", userId);
       
-      // Desativar perfil ao invés de excluir usuário
       const { error } = await supabase
         .from("profiles")
         .update({ ativo: false })
@@ -176,11 +245,11 @@ const Usuarios = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Usuário desativado com sucesso!");
+      toast.success("Usuário excluído com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
     },
     onError: (error: any) => {
-      toast.error("Erro ao desativar usuário: " + error.message);
+      toast.error("Erro ao excluir usuário: " + error.message);
     },
   });
 
@@ -190,6 +259,19 @@ const Usuarios = () => {
     setSenha("");
     setRole("atendente");
     setSelectedPermissions([]);
+    setEditMode(false);
+    setEditingUserId(null);
+  };
+
+  const handleEdit = (user: any) => {
+    setEditMode(true);
+    setEditingUserId(user.id);
+    setNome(user.nome || user.email.split('@')[0]);
+    setEmail(user.email);
+    setSenha("");
+    setRole(user.role);
+    setSelectedPermissions(user.permissions || []);
+    setOpen(true);
   };
 
   const handleRoleChange = (newRole: string) => {
@@ -205,6 +287,14 @@ const Usuarios = () => {
     );
   };
 
+  const handleSubmit = () => {
+    if (editMode) {
+      updateUserMutation.mutate();
+    } else {
+      createUserMutation.mutate();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -214,16 +304,16 @@ const Usuarios = () => {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={resetForm}>
               <UserPlus className="mr-2 h-4 w-4" />
               Novo Usuário
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Criar Novo Usuário</DialogTitle>
+              <DialogTitle>{editMode ? "Editar Usuário" : "Criar Novo Usuário"}</DialogTitle>
               <DialogDescription>
-                Preencha os dados e defina as permissões do usuário
+                {editMode ? "Atualize as informações e permissões do usuário" : "Preencha os dados e defina as permissões do usuário"}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -251,15 +341,22 @@ const Usuarios = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="senha">Senha</Label>
+                  <Label htmlFor="senha">
+                    {editMode ? "Nova Senha (deixe em branco para não alterar)" : "Senha"}
+                  </Label>
                   <Input
                     id="senha"
                     type="password"
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
-                    minLength={8}
+                    placeholder={editMode ? "Digite a nova senha" : "Mínimo 6 caracteres"}
+                    minLength={6}
                   />
+                  {editMode && (
+                    <p className="text-xs text-muted-foreground">
+                      Deixe em branco se não quiser alterar a senha
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Cargo</Label>
@@ -310,11 +407,11 @@ const Usuarios = () => {
                   Cancelar
                 </Button>
                 <Button
-                  onClick={() => createUserMutation.mutate()}
-                  disabled={createUserMutation.isPending}
+                  onClick={handleSubmit}
+                  disabled={createUserMutation.isPending || updateUserMutation.isPending}
                 >
-                  {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Criar Usuário
+                  {(createUserMutation.isPending || updateUserMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {editMode ? "Atualizar" : "Criar"} Usuário
                 </Button>
               </div>
             </div>
@@ -335,6 +432,7 @@ const Usuarios = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Cargo</TableHead>
+                  <TableHead>Permissões</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Criado em</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -344,7 +442,6 @@ const Usuarios = () => {
                 {usuarios?.map((user) => {
                   const roleConfig = ROLE_CONFIG[user.role as keyof typeof ROLE_CONFIG];
                   const Icon = roleConfig?.icon || Users;
-                  const isAdmin = user.role === 'admin';
                   
                   return (
                     <TableRow key={user.id}>
@@ -357,6 +454,20 @@ const Usuarios = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {user.permissions?.slice(0, 3).map((perm: string) => (
+                            <Badge key={perm} variant="outline" className="text-xs">
+                              {perm.replace("manage_", "").replace("view_", "").replace("_", " ")}
+                            </Badge>
+                          ))}
+                          {user.permissions && user.permissions.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{user.permissions.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={user.ativo ? "default" : "secondary"}>
                           {user.ativo ? "Ativo" : "Inativo"}
                         </Badge>
@@ -366,45 +477,48 @@ const Usuarios = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {!isAdmin && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleUserStatusMutation.mutate({ 
-                                  userId: user.id, 
-                                  currentStatus: user.ativo 
-                                })}
-                                disabled={toggleUserStatusMutation.isPending}
-                              >
-                                <Power className="h-4 w-4" />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(user)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleUserStatusMutation.mutate({ 
+                              userId: user.id, 
+                              currentStatus: user.ativo 
+                            })}
+                            disabled={toggleUserStatusMutation.isPending}
+                          >
+                            <Power className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="destructive" size="sm">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Esta ação não pode ser desfeita. O usuário {user.email} será permanentemente excluído do sistema.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => deleteUserMutation.mutate(user.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Excluir
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </>
-                          )}
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação não pode ser desfeita. O usuário {user.email} será permanentemente excluído do sistema.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteUserMutation.mutate(user.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
