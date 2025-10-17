@@ -10,6 +10,7 @@ interface RestaurantConfig {
   tempo_entrega: string;
   status_funcionamento: string;
   modo_atendimento: string;
+  logo_url?: string;
 }
 
 interface MenuHeaderProps {
@@ -28,8 +29,16 @@ export const MenuHeader = ({ config, searchQuery, onSearchChange }: MenuHeaderPr
         <div className="flex items-center justify-between mb-4 animate-fade-in">
           <div className="flex items-center gap-4">
             {/* Logo */}
-            <div className="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
-              <span className="text-3xl">🍢</span>
+            <div className="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 transition-transform overflow-hidden">
+              {config?.logo_url ? (
+                <img 
+                  src={config.logo_url} 
+                  alt={config.nome_restaurante} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-3xl">🍢</span>
+              )}
             </div>
             
             {/* Info */}

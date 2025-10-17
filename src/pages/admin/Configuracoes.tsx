@@ -150,8 +150,16 @@ const Configuracoes = () => {
         .from('cardapio-images')
         .getPublicUrl(filePath);
 
+      // Atualizar no banco de dados imediatamente
+      const { error: updateError } = await supabase
+        .from("restaurant_config")
+        .update({ logo_url: publicUrl })
+        .eq("id", config.id);
+
+      if (updateError) throw updateError;
+
       setConfig({ ...config, logo_url: publicUrl });
-      toast.success("Logo carregado com sucesso!");
+      toast.success("Logo atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
       toast.error("Erro ao fazer upload do logo");

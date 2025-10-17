@@ -48,6 +48,7 @@ interface RestaurantConfig {
   tempo_entrega: string;
   status_funcionamento: string;
   modo_atendimento: string;
+  logo_url?: string;
 }
 
 const Index = () => {
