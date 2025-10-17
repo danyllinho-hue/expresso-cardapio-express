@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Category {
   id: string;
@@ -22,9 +21,9 @@ export const CategoryFilter = ({
 
   return (
     <div className="sticky top-[80px] md:top-[200px] z-40 bg-card/95 backdrop-blur-lg border-b shadow-sm">
-      <ScrollArea className="w-full">
+      <div className="w-full overflow-x-auto scrollbar-hide">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex gap-2 pb-2 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
             <Button
               variant={!selectedCategory ? "default" : "outline"}
               size="sm"
@@ -46,7 +45,7 @@ export const CategoryFilter = ({
             ))}
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
