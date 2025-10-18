@@ -234,13 +234,9 @@ const Usuarios = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      await supabase.from("user_roles").delete().eq("user_id", userId);
-      await supabase.from("user_permissions").delete().eq("user_id", userId);
-      
-      const { error } = await supabase
-        .from("profiles")
-        .update({ ativo: false })
-        .eq("id", userId);
+      // Deletar completamente o usuário do auth.users
+      // Isso irá cascatear e deletar automaticamente de profiles
+      const { error } = await supabase.auth.admin.deleteUser(userId);
       
       if (error) throw error;
     },
