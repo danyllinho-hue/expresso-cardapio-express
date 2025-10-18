@@ -105,6 +105,58 @@ const Usuarios = () => {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
+      // Verificar se já existe um usuário inativo com este email
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id, ativo")
+        .eq("email", email)
+        .single();
+
+      if (existingProfile && !existingProfile.ativo) {
+        // Reativar o usuário existente
+        const { error: reactivateError } = await supabase
+          .from("profiles")
+          .update({ ativo: true })
+          .eq("id", existingProfile.id);
+
+        if (reactivateError) throw reactivateError;
+
+        // Atualizar senha se fornecida
+        if (senha) {
+          const { error: authError } = await supabase.auth.admin.updateUserById(
+            existingProfile.id,
+            { password: senha }
+          );
+          if (authError) console.warn("Não foi possível atualizar a senha:", authError);
+        }
+
+        // Atualizar role
+        await supabase.from("user_roles").delete().eq("user_id", existingProfile.id);
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert([{ user_id: existingProfile.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
+
+        if (roleError) throw roleError;
+
+        // Atualizar permissões
+        await supabase.from("user_permissions").delete().eq("user_id", existingProfile.id);
+        if (selectedPermissions.length > 0) {
+          const { error: permError } = await supabase
+            .from("user_permissions")
+            .insert(
+              selectedPermissions.map(permission => ({
+                user_id: existingProfile.id,
+                permission,
+              }))
+            );
+
+          if (permError) throw permError;
+        }
+
+        return { id: existingProfile.id };
+      }
+
+      // Criar novo usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -234,9 +286,11 @@ const Usuarios = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Deletar completamente o usuário do auth.users
-      // Isso irá cascatear e deletar automaticamente de profiles
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      // Marcar como inativo ao invés de deletar completamente
+      const { error } = await supabase
+        .from("profiles")
+        .update({ ativo: false })
+        .eq("id", userId);
       
       if (error) throw error;
     },
