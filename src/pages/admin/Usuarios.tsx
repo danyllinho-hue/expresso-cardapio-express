@@ -113,33 +113,27 @@ const Usuarios = () => {
         .single();
 
       if (existingProfile && !existingProfile.ativo) {
-        // Reativar o usuário existente
-        const { error: reactivateError } = await supabase
-          .from("profiles")
-          .update({ ativo: true })
-          .eq("id", existingProfile.id);
-
-        if (reactivateError) throw reactivateError;
-
-        // Atualizar senha se fornecida
+        // Atualizar senha PRIMEIRO (se fornecida)
         if (senha) {
           const { error: authError } = await supabase.auth.admin.updateUserById(
             existingProfile.id,
             { password: senha }
           );
-          if (authError) console.warn("Não foi possível atualizar a senha:", authError);
+          if (authError) throw authError;
         }
 
-        // Atualizar role
+        // Deletar roles e permissões antigas
         await supabase.from("user_roles").delete().eq("user_id", existingProfile.id);
+        await supabase.from("user_permissions").delete().eq("user_id", existingProfile.id);
+
+        // Criar nova role
         const { error: roleError } = await supabase
           .from("user_roles")
           .insert([{ user_id: existingProfile.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
 
         if (roleError) throw roleError;
 
-        // Atualizar permissões
-        await supabase.from("user_permissions").delete().eq("user_id", existingProfile.id);
+        // Criar novas permissões
         if (selectedPermissions.length > 0) {
           const { error: permError } = await supabase
             .from("user_permissions")
@@ -152,6 +146,14 @@ const Usuarios = () => {
 
           if (permError) throw permError;
         }
+
+        // Reativar o perfil DEPOIS de tudo configurado
+        const { error: reactivateError } = await supabase
+          .from("profiles")
+          .update({ ativo: true })
+          .eq("id", existingProfile.id);
+
+        if (reactivateError) throw reactivateError;
 
         return { id: existingProfile.id };
       }

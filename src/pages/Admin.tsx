@@ -20,6 +20,20 @@ const Admin = () => {
         return;
       }
 
+      // Verificar se perfil está ativo
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("ativo")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!profile || !profile.ativo) {
+        await supabase.auth.signOut();
+        toast.error("Acesso negado. Conta desativada.");
+        navigate("/login");
+        return;
+      }
+
       // Verificar se usuário tem role ou permissão de acesso
       const { data: userRoles } = await supabase
         .from("user_roles")
