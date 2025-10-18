@@ -105,39 +105,57 @@ const Usuarios = () => {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      // Criar novo usuário
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: senha,
-        options: {
-          data: { nome },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
+      try {
+        // Primeiro, verificar se existe um usuário com este email no auth
+        const { data: { users: existingAuthUsers } } = await supabase.auth.admin.listUsers();
+        const existingAuthUser = existingAuthUsers?.find((u: any) => u.email === email);
+        
+        if (existingAuthUser) {
+          // Deletar o usuário existente primeiro
+          const { error: deleteError } = await supabase.auth.admin.deleteUser(existingAuthUser.id);
+          if (deleteError) throw deleteError;
+          
+          // Aguardar um pouco para garantir que foi deletado
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao criar usuário");
+        // Agora criar o novo usuário
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password: senha,
+          options: {
+            data: { nome },
+            emailRedirectTo: `${window.location.origin}/`,
+          },
+        });
 
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert([{ user_id: authData.user.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
+        if (authError) throw authError;
+        if (!authData.user) throw new Error("Erro ao criar usuário");
 
-      if (roleError) throw roleError;
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert([{ user_id: authData.user.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
 
-      if (selectedPermissions.length > 0) {
-        const { error: permError } = await supabase
-          .from("user_permissions")
-          .insert(
-            selectedPermissions.map(permission => ({
-              user_id: authData.user.id,
-              permission,
-            }))
-          );
+        if (roleError) throw roleError;
 
-        if (permError) throw permError;
+        if (selectedPermissions.length > 0) {
+          const { error: permError } = await supabase
+            .from("user_permissions")
+            .insert(
+              selectedPermissions.map(permission => ({
+                user_id: authData.user.id,
+                permission,
+              }))
+            );
+
+          if (permError) throw permError;
+        }
+
+        return authData.user;
+      } catch (error: any) {
+        console.error("Erro detalhado:", error);
+        throw error;
       }
-
-      return authData.user;
     },
     onSuccess: () => {
       toast.success("Usuário criado com sucesso!");
