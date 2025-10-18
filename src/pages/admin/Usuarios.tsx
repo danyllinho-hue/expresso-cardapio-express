@@ -105,59 +105,6 @@ const Usuarios = () => {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      // Verificar se já existe um usuário inativo com este email
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id, ativo")
-        .eq("email", email)
-        .single();
-
-      if (existingProfile && !existingProfile.ativo) {
-        // Atualizar senha PRIMEIRO (se fornecida)
-        if (senha) {
-          const { error: authError } = await supabase.auth.admin.updateUserById(
-            existingProfile.id,
-            { password: senha }
-          );
-          if (authError) throw authError;
-        }
-
-        // Deletar roles e permissões antigas
-        await supabase.from("user_roles").delete().eq("user_id", existingProfile.id);
-        await supabase.from("user_permissions").delete().eq("user_id", existingProfile.id);
-
-        // Criar nova role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert([{ user_id: existingProfile.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
-
-        if (roleError) throw roleError;
-
-        // Criar novas permissões
-        if (selectedPermissions.length > 0) {
-          const { error: permError } = await supabase
-            .from("user_permissions")
-            .insert(
-              selectedPermissions.map(permission => ({
-                user_id: existingProfile.id,
-                permission,
-              }))
-            );
-
-          if (permError) throw permError;
-        }
-
-        // Reativar o perfil DEPOIS de tudo configurado
-        const { error: reactivateError } = await supabase
-          .from("profiles")
-          .update({ ativo: true })
-          .eq("id", existingProfile.id);
-
-        if (reactivateError) throw reactivateError;
-
-        return { id: existingProfile.id };
-      }
-
       // Criar novo usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -288,11 +235,8 @@ const Usuarios = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Marcar como inativo ao invés de deletar completamente
-      const { error } = await supabase
-        .from("profiles")
-        .update({ ativo: false })
-        .eq("id", userId);
+      // Deletar completamente do auth.users (vai cascatear para profiles)
+      const { error } = await supabase.auth.admin.deleteUser(userId);
       
       if (error) throw error;
     },
