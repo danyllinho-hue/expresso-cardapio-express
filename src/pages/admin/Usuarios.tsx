@@ -106,52 +106,71 @@ const Usuarios = () => {
   const createUserMutation = useMutation({
     mutationFn: async () => {
       try {
-        // Primeiro, verificar se existe um usuário com este email no auth
-        const { data: { users: existingAuthUsers } } = await supabase.auth.admin.listUsers();
-        const existingAuthUser = existingAuthUsers?.find((u: any) => u.email === email);
-        
-        if (existingAuthUser) {
-          // Deletar o usuário existente primeiro
-          const { error: deleteError } = await supabase.auth.admin.deleteUser(existingAuthUser.id);
-          if (deleteError) throw deleteError;
+        let userCreated = false;
+        let attempts = 0;
+        const maxAttempts = 2;
+
+        while (!userCreated && attempts < maxAttempts) {
+          attempts++;
           
-          // Aguardar um pouco para garantir que foi deletado
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          try {
+            // Tentar criar o usuário
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+              email,
+              password: senha,
+              options: {
+                data: { nome },
+                emailRedirectTo: `${window.location.origin}/`,
+              },
+            });
+
+            if (!authError && authData.user) {
+              // Usuário criado com sucesso
+              const { error: roleError } = await supabase
+                .from("user_roles")
+                .insert([{ user_id: authData.user.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
+
+              if (roleError) throw roleError;
+
+              if (selectedPermissions.length > 0) {
+                const { error: permError } = await supabase
+                  .from("user_permissions")
+                  .insert(
+                    selectedPermissions.map(permission => ({
+                      user_id: authData.user.id,
+                      permission,
+                    }))
+                  );
+
+                if (permError) throw permError;
+              }
+
+              return authData.user;
+            }
+
+            // Se chegou aqui, houve erro
+            if (authError?.message?.includes("already registered") || authError?.message?.includes("User already registered")) {
+              // Buscar e deletar o usuário existente
+              const { data: { users: existingUsers } } = await supabase.auth.admin.listUsers();
+              const existingUser = existingUsers?.find((u: any) => u.email === email);
+              
+              if (existingUser) {
+                await supabase.auth.admin.deleteUser(existingUser.id);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              } else {
+                throw new Error("Usuário já existe mas não foi encontrado para deletar");
+              }
+            } else {
+              throw authError;
+            }
+          } catch (innerError: any) {
+            if (attempts >= maxAttempts) {
+              throw innerError;
+            }
+          }
         }
 
-        // Agora criar o novo usuário
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password: senha,
-          options: {
-            data: { nome },
-            emailRedirectTo: `${window.location.origin}/`,
-          },
-        });
-
-        if (authError) throw authError;
-        if (!authData.user) throw new Error("Erro ao criar usuário");
-
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert([{ user_id: authData.user.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
-
-        if (roleError) throw roleError;
-
-        if (selectedPermissions.length > 0) {
-          const { error: permError } = await supabase
-            .from("user_permissions")
-            .insert(
-              selectedPermissions.map(permission => ({
-                user_id: authData.user.id,
-                permission,
-              }))
-            );
-
-          if (permError) throw permError;
-        }
-
-        return authData.user;
+        throw new Error("Não foi possível criar o usuário após várias tentativas");
       } catch (error: any) {
         console.error("Erro detalhado:", error);
         throw error;
