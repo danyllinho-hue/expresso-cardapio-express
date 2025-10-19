@@ -105,7 +105,24 @@ const Usuarios = () => {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      // Criar o usuário no auth
+      // PRIMEIRO: Verificar se o usuário já existe em auth.users e deletá-lo
+      const { data: { users: existingUsers } } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      
+      if (existingUser) {
+        console.log(`Usuário ${email} já existe (ID: ${existingUser.id}). Deletando...`);
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(existingUser.id);
+        
+        if (deleteError) {
+          console.error("Erro ao deletar usuário existente:", deleteError);
+          throw new Error(`Não foi possível remover o usuário existente: ${deleteError.message}`);
+        }
+        
+        // Aguardar um pouco para garantir que a deleção foi processada
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+
+      // AGORA: Criar o novo usuário
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
