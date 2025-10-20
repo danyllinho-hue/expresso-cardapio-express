@@ -105,58 +105,23 @@ const Usuarios = () => {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      // PRIMEIRO: Verificar se o usuário já existe em auth.users e deletá-lo
-      const { data: { users: existingUsers } } = await supabase.auth.admin.listUsers();
-      const existingUser = existingUsers?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-      
-      if (existingUser) {
-        console.log(`Usuário ${email} já existe (ID: ${existingUser.id}). Deletando...`);
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(existingUser.id);
-        
-        if (deleteError) {
-          console.error("Erro ao deletar usuário existente:", deleteError);
-          throw new Error(`Não foi possível remover o usuário existente: ${deleteError.message}`);
+      const { data, error } = await supabase.functions.invoke('manage-user', {
+        body: {
+          operation: 'create',
+          userData: {
+            email,
+            password: senha,
+            nome,
+            role,
+            permissions: selectedPermissions,
+          }
         }
-        
-        // Aguardar um pouco para garantir que a deleção foi processada
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-
-      // AGORA: Criar o novo usuário
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: senha,
-        options: {
-          data: { nome },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao criar usuário");
-
-      // Criar role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert([{ user_id: authData.user.id, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
-
-      if (roleError) throw roleError;
-
-      // Criar permissões
-      if (selectedPermissions.length > 0) {
-        const { error: permError } = await supabase
-          .from("user_permissions")
-          .insert(
-            selectedPermissions.map(permission => ({
-              user_id: authData.user.id,
-              permission,
-            }))
-          );
-
-        if (permError) throw permError;
-      }
-
-      return authData.user;
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      
+      return data.user;
     },
     onSuccess: () => {
       toast.success("Usuário criado com sucesso!");
@@ -173,55 +138,22 @@ const Usuarios = () => {
     mutationFn: async () => {
       if (!editingUserId) throw new Error("ID do usuário não encontrado");
 
-      // Atualizar email no perfil
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ email: email })
-        .eq("id", editingUserId);
-
-      if (profileError) throw profileError;
-
-      // Atualizar role
-      await supabase.from("user_roles").delete().eq("user_id", editingUserId);
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert([{ user_id: editingUserId, role: role as "admin" | "gerente" | "atendente" | "cozinha" }]);
-
-      if (roleError) throw roleError;
-
-      // Atualizar permissões
-      await supabase.from("user_permissions").delete().eq("user_id", editingUserId);
-      if (selectedPermissions.length > 0) {
-        const { error: permError } = await supabase
-          .from("user_permissions")
-          .insert(
-            selectedPermissions.map(permission => ({
-              user_id: editingUserId,
-              permission,
-            }))
-          );
-
-        if (permError) throw permError;
-      }
-
-      // Atualizar email e senha no auth.users (requer admin API)
-      if (email || senha) {
-        const updates: any = {};
-        if (email) updates.email = email;
-        if (senha) updates.password = senha;
-
-        const { error: authError } = await supabase.auth.admin.updateUserById(
-          editingUserId,
-          updates
-        );
-
-        if (authError) {
-          console.warn("Não foi possível atualizar email/senha:", authError);
-          toast.info("Email e função atualizados. Para alterar a senha, peça ao usuário para usar recuperação de senha.");
+      const { data, error } = await supabase.functions.invoke('manage-user', {
+        body: {
+          operation: 'update',
+          userData: {
+            userId: editingUserId,
+            email,
+            password: senha || undefined,
+            nome,
+            role,
+            permissions: selectedPermissions,
+          }
         }
-      }
+      });
 
-      return true;
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
     },
     onSuccess: () => {
       toast.success("Usuário atualizado com sucesso!");
@@ -254,10 +186,15 @@ const Usuarios = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Deletar completamente do auth.users (vai cascatear para profiles)
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
+      const { data, error } = await supabase.functions.invoke('manage-user', {
+        body: {
+          operation: 'delete',
+          userData: { userId }
+        }
+      });
+
       if (error) throw error;
+      if (data.error) throw new Error(data.error);
     },
     onSuccess: () => {
       toast.success("Usuário excluído com sucesso!");
