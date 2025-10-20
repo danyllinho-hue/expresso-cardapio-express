@@ -5,6 +5,7 @@ import { ShoppingCart } from "lucide-react";
 import { MenuHeader } from "@/components/menu/MenuHeader";
 import { CategoryFilter } from "@/components/menu/CategoryFilter";
 import { MenuItemCard } from "@/components/menu/MenuItemCard";
+import { MenuItemListRow } from "@/components/menu/MenuItemListRow";
 import { CartSheet } from "@/components/cart/CartSheet";
 import { ProductDetailModal } from "@/components/menu/ProductDetailModal";
 import { toast } from "sonner";
@@ -230,9 +231,9 @@ const Index = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-3">
               {filteredItems.map(item => (
-                <MenuItemCard
+                <MenuItemListRow
                   key={item.id}
                   item={item}
                   onAddToCart={(item) => addToCart(item, 1, "")}
