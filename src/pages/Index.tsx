@@ -210,14 +210,8 @@ const Index = () => {
           </section>
         )}
 
-        {/* All Items Section */}
-        <section>
-          {!selectedCategory && !searchQuery && (
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="text-3xl font-bold">🍽️ Cardápio Completo</h2>
-            </div>
-          )}
-
+        {/* Menu by Categories Section */}
+        <section className="space-y-12">
           {filteredItems.length === 0 ? (
             <div className="text-center py-20 animate-fade-in">
               <div className="text-7xl mb-4">🔍</div>
@@ -231,17 +225,31 @@ const Index = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredItems.map(item => (
-                <MenuItemListRow
-                  key={item.id}
-                  item={item}
-                  onAddToCart={(item) => addToCart(item, 1, "")}
-                  onItemClick={handleItemClick}
-                  disabled={!isOpen}
-                />
-              ))}
-            </div>
+            // Render items grouped by category
+            categories.map(category => {
+              const categoryItems = filteredItems.filter(item => item.categoria_id === category.id);
+              
+              if (categoryItems.length === 0) return null;
+              
+              return (
+                <div key={category.id} className="animate-fade-in">
+                  <div className="flex items-center gap-3 mb-6">
+                    <h2 className="text-3xl font-bold">{category.nome}</h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {categoryItems.map(item => (
+                      <MenuItemListRow
+                        key={item.id}
+                        item={item}
+                        onAddToCart={(item) => addToCart(item, 1, "")}
+                        onItemClick={handleItemClick}
+                        disabled={!isOpen}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
           )}
         </section>
       </main>
