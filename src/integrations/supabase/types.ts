@@ -579,7 +579,96 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_restaurant_info: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          endereco: string | null
+          estado: string | null
+          exibir_dados_publicos: boolean | null
+          exibir_endereco: boolean | null
+          facebook: string | null
+          habilitar_whatsapp: boolean | null
+          horario_funcionamento: Json | null
+          id: string | null
+          instagram: string | null
+          logo_url: string | null
+          modo_atendimento: string | null
+          nome_restaurante: string | null
+          numero: string | null
+          site: string | null
+          status_funcionamento: string | null
+          telefone: string | null
+          tempo_entrega: string | null
+          twitter: string | null
+          whatsapp_mensagem: string | null
+          whatsapp_oficial: string | null
+          youtube: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          endereco?: string | null
+          estado?: string | null
+          exibir_dados_publicos?: boolean | null
+          exibir_endereco?: boolean | null
+          facebook?: string | null
+          habilitar_whatsapp?: boolean | null
+          horario_funcionamento?: Json | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          modo_atendimento?: string | null
+          nome_restaurante?: string | null
+          numero?: string | null
+          site?: string | null
+          status_funcionamento?: string | null
+          telefone?: string | null
+          tempo_entrega?: string | null
+          twitter?: string | null
+          whatsapp_mensagem?: string | null
+          whatsapp_oficial?: string | null
+          youtube?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          endereco?: string | null
+          estado?: string | null
+          exibir_dados_publicos?: boolean | null
+          exibir_endereco?: boolean | null
+          facebook?: string | null
+          habilitar_whatsapp?: boolean | null
+          horario_funcionamento?: Json | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          modo_atendimento?: string | null
+          nome_restaurante?: string | null
+          numero?: string | null
+          site?: string | null
+          status_funcionamento?: string | null
+          telefone?: string | null
+          tempo_entrega?: string | null
+          twitter?: string | null
+          whatsapp_mensagem?: string | null
+          whatsapp_oficial?: string | null
+          youtube?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_permission: {
