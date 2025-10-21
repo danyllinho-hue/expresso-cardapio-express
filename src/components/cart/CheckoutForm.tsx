@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { z } from "zod";
 
 interface MenuItem {
   id: string;
@@ -38,6 +39,15 @@ interface CheckoutFormProps {
   onSuccess: () => void;
 }
 
+// Zod validation schema for checkout form
+const checkoutSchema = z.object({
+  nome: z.string().trim().min(3, "Nome muito curto (mínimo 3 caracteres)").max(100, "Nome muito longo (máximo 100 caracteres)"),
+  whatsapp: z.string().regex(/^(\+?55)?[\s-]?\(?\d{2}\)?[\s-]?9?\d{4}[\s-]?\d{4}$/, "WhatsApp inválido"),
+  endereco: z.string().trim().min(10, "Endereço muito curto (mínimo 10 caracteres)").max(500, "Endereço muito longo (máximo 500 caracteres)"),
+  data_nascimento: z.string().optional(),
+  notes: z.string().max(1000, "Observações muito longas (máximo 1000 caracteres)").optional()
+});
+
 export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -60,26 +70,16 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
         return;
       }
 
-      // Validate form
-      if (!formData.nome || !formData.whatsapp || !formData.endereco) {
-        toast.error("Preencha todos os campos obrigatórios");
-        setLoading(false);
-        return;
-      }
-
-      // Validate WhatsApp format
-      const whatsappRegex = /^(\+?55)?[\s-]?\(?\d{2}\)?[\s-]?9?\d{4}[\s-]?\d{4}$/;
-      if (!whatsappRegex.test(formData.whatsapp)) {
-        toast.error("WhatsApp inválido. Use o formato: (75) 99999-9999");
-        setLoading(false);
-        return;
-      }
-
-      // Validate address length
-      if (formData.endereco.length < 10) {
-        toast.error("Endereço muito curto. Informe rua, número e bairro");
-        setLoading(false);
-        return;
+      // Validate form data with Zod schema
+      try {
+        checkoutSchema.parse(formData);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          const firstError = error.errors[0];
+          toast.error(firstError.message);
+          setLoading(false);
+          return;
+        }
       }
 
       // Create or get customer

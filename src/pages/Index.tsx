@@ -69,9 +69,9 @@ const Index = () => {
 
   const loadData = async () => {
     try {
-      // Load config
+      // Load config from public view (no auth required)
       const { data: configData, error: configError } = await supabase
-        .from("restaurant_config")
+        .from("public_restaurant_info")
         .select("*")
         .single();
       
