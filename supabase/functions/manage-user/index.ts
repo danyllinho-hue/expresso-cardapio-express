@@ -58,6 +58,26 @@ Deno.serve(async (req) => {
 
     console.log(`[manage-user] Operação: ${operation}`, userData);
 
+    // Input validation
+    const validRoles = ['admin', 'moderator', 'user'];
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (userData.role && !validRoles.includes(userData.role)) {
+      throw new Error('Função inválida. Deve ser: admin, moderator ou user');
+    }
+
+    if (userData.nome && (userData.nome.length < 2 || userData.nome.length > 100)) {
+      throw new Error('Nome deve ter entre 2 e 100 caracteres');
+    }
+
+    if (userData.userId && !uuidRegex.test(userData.userId)) {
+      throw new Error('ID de usuário inválido');
+    }
+
+    if (userData.permissions && !Array.isArray(userData.permissions)) {
+      throw new Error('Permissões devem ser um array');
+    }
+
     // CREATE USER
     if (operation === 'create') {
       const { email, password, nome, role, permissions } = userData;
