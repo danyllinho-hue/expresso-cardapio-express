@@ -73,9 +73,12 @@ const Index = () => {
       const { data: configData, error: configError } = await supabase
         .from("public_restaurant_info")
         .select("*")
-        .single();
+        .maybeSingle();
       
-      if (configError) throw configError;
+      // Ignorar erro se for apenas "sem dados"
+      if (configError && configError.code !== 'PGRST116') {
+        console.error("Erro ao carregar configuração:", configError);
+      }
       if (configData) setConfig(configData);
 
       // Load categories
