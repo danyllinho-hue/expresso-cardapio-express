@@ -20,6 +20,13 @@ interface MenuItem {
   destaque: boolean;
 }
 
+interface MenuItemImage {
+  id: string;
+  image_url: string;
+  image_thumb_url: string | null;
+  ordem: number;
+}
+
 interface ComplementOption {
   id: string;
   nome: string;
@@ -61,12 +68,34 @@ export const ProductDetailModal = ({
   const [notes, setNotes] = useState("");
   const [complementGroups, setComplementGroups] = useState<ComplementGroup[]>([]);
   const [selectedComplements, setSelectedComplements] = useState<Record<string, string[]>>({});
+  const [itemImages, setItemImages] = useState<MenuItemImage[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     if (item && open) {
       loadComplements();
+      loadImages();
     }
   }, [item, open]);
+
+  const loadImages = async () => {
+    if (!item) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('menu_item_images')
+        .select('*')
+        .eq('menu_item_id', item.id)
+        .order('ordem');
+
+      if (error) throw error;
+
+      setItemImages(data || []);
+      setSelectedImageIndex(0);
+    } catch (error) {
+      console.error('Erro ao carregar imagens:', error);
+    }
+  };
 
   const loadComplements = async () => {
     if (!item) return;
@@ -124,6 +153,8 @@ export const ProductDetailModal = ({
     setQuantity(1);
     setNotes("");
     setSelectedComplements({});
+    setItemImages([]);
+    setSelectedImageIndex(0);
     onOpenChange(false);
   };
 
@@ -208,26 +239,58 @@ export const ProductDetailModal = ({
 
   if (!item) return null;
 
+  const currentImage = itemImages.length > 0 
+    ? itemImages[selectedImageIndex] 
+    : null;
+
+  const displayImage = currentImage?.image_url || item.imagem;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-[1100px] w-[95vw] p-0 gap-0 overflow-hidden grid lg:grid-cols-[1fr_400px]"
+        className="max-w-[1100px] w-[95vw] p-0 gap-0 max-h-[95vh] overflow-hidden grid lg:grid-cols-[1fr_400px]"
         onEscapeKeyDown={handleClose}
         aria-describedby="product-description"
         aria-labelledby="product-title"
       >
         {/* Imagem - Coluna Esquerda */}
-        <div className="relative w-full flex items-center justify-center bg-background min-h-[300px] lg:min-h-0">
-          {item.imagem ? (
-            <img
-              src={item.imagem}
-              alt={item.nome}
-              className="w-full h-auto object-contain max-h-[600px]"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-6xl">
-              🍢
+        <div className="relative w-full bg-background min-h-[300px] lg:min-h-0 flex flex-col">
+          {/* Imagem Principal */}
+          <div className="flex-1 flex items-center justify-center p-4">
+            {displayImage ? (
+              <img
+                src={displayImage}
+                alt={item.nome}
+                className="w-full h-auto object-contain max-h-[500px]"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-6xl">
+                🍢
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnails */}
+          {itemImages.length > 0 && (
+            <div className="flex gap-2 p-4 border-t bg-muted/20 overflow-x-auto">
+              {itemImages.map((img, index) => (
+                <button
+                  key={img.id}
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                    selectedImageIndex === index 
+                      ? 'border-primary ring-2 ring-primary/20' 
+                      : 'border-transparent hover:border-muted-foreground/50'
+                  }`}
+                >
+                  <img
+                    src={img.image_thumb_url || img.image_url}
+                    alt={`Foto ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
             </div>
           )}
           
@@ -240,8 +303,9 @@ export const ProductDetailModal = ({
           )}
         </div>
 
-        {/* Conteúdo - Coluna Direita */}
-        <div className="p-6 space-y-4 overflow-y-auto max-h-[90vh] lg:max-h-[520px] flex flex-col">
+        {/* Conteúdo - Coluna Direita - SCROLL CORRIGIDO */}
+        <div className="flex flex-col max-h-[95vh] lg:max-h-full">
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
           <DialogHeader>
             <DialogTitle id="product-title" className="text-2xl font-bold text-foreground">
               {item.nome}
@@ -365,13 +429,16 @@ export const ProductDetailModal = ({
           </div>
 
           {/* Botão Adicionar */}
-          <Button
-            onClick={handleAdd}
-            className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-shadow"
-            size="lg"
-          >
-            Adicionar • R$ {calculateTotal().toFixed(2)}
-          </Button>
+          <div className="sticky bottom-0 pt-4 pb-2 bg-background border-t mt-auto">
+            <Button
+              onClick={handleAdd}
+              className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-shadow"
+              size="lg"
+            >
+              Adicionar • R$ {calculateTotal().toFixed(2)}
+            </Button>
+          </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

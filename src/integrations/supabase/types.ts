@@ -229,6 +229,41 @@ export type Database = {
           },
         ]
       }
+      menu_item_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_thumb_url: string | null
+          image_url: string
+          menu_item_id: string
+          ordem: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_thumb_url?: string | null
+          image_url: string
+          menu_item_id: string
+          ordem?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_thumb_url?: string | null
+          image_url?: string
+          menu_item_id?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_images_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
           categoria_id: string | null

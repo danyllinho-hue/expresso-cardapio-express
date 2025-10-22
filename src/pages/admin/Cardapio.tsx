@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Pencil, Trash2, Plus, Star, ImageIcon } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";
+import MultiImageUpload from "@/components/admin/MultiImageUpload";
 
 interface MenuItem {
   id: string;
@@ -37,6 +38,12 @@ interface ComplementGroup {
   obrigatorio: boolean;
 }
 
+interface ImageData {
+  url: string;
+  thumbUrl: string;
+  ordem: number;
+}
+
 const Cardapio = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -45,6 +52,7 @@ const Cardapio = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [itemImages, setItemImages] = useState<ImageData[]>([]);
   const [formData, setFormData] = useState({
     nome: "",
     descricao: "",
@@ -149,6 +157,12 @@ const Cardapio = () => {
         .delete()
         .eq("menu_item_id", itemId);
 
+      // Deletar imagens antigas
+      await supabase
+        .from("menu_item_images")
+        .delete()
+        .eq("menu_item_id", itemId);
+
       toast.success("Item atualizado com sucesso! ✅");
     } else {
       const { data, error } = await supabase
@@ -166,6 +180,7 @@ const Cardapio = () => {
       toast.success("Item criado com sucesso! ✅");
     }
 
+    // Salvar complementos
     if (selectedComplements.length > 0) {
       const complementLinks = selectedComplements.map(groupId => ({
         menu_item_id: itemId,
@@ -178,6 +193,25 @@ const Cardapio = () => {
 
       if (error) {
         toast.error("Erro ao vincular complementos");
+        return;
+      }
+    }
+
+    // Salvar imagens
+    if (itemImages.length > 0) {
+      const imageRecords = itemImages.map(img => ({
+        menu_item_id: itemId,
+        image_url: img.url,
+        image_thumb_url: img.thumbUrl,
+        ordem: img.ordem
+      }));
+
+      const { error } = await supabase
+        .from("menu_item_images")
+        .insert(imageRecords);
+
+      if (error) {
+        toast.error("Erro ao salvar imagens");
         return;
       }
     }
@@ -199,6 +233,7 @@ const Cardapio = () => {
       destaque: item.destaque,
     });
 
+    // Carregar complementos
     const { data } = await supabase
       .from("menu_item_complements")
       .select("complement_group_id")
@@ -206,6 +241,21 @@ const Cardapio = () => {
 
     if (data) {
       setSelectedComplements(data.map(link => link.complement_group_id));
+    }
+
+    // Carregar imagens
+    const { data: images } = await supabase
+      .from("menu_item_images")
+      .select("*")
+      .eq("menu_item_id", item.id)
+      .order("ordem");
+
+    if (images) {
+      setItemImages(images.map(img => ({
+        url: img.image_url,
+        thumbUrl: img.image_thumb_url || img.image_url,
+        ordem: img.ordem
+      })));
     }
 
     setIsDialogOpen(true);
@@ -232,6 +282,7 @@ const Cardapio = () => {
     setIsDialogOpen(false);
     setEditingItem(null);
     setSelectedComplements([]);
+    setItemImages([]);
     setFormData({
       nome: "",
       descricao: "",
@@ -345,6 +396,13 @@ const Cardapio = () => {
                 currentImageUrl={formData.imagem}
                 onImageUploaded={handleImageUploaded}
                 itemName={formData.nome}
+              />
+
+              <MultiImageUpload
+                currentImages={itemImages}
+                onImagesChanged={setItemImages}
+                itemName={formData.nome}
+                maxImages={3}
               />
 
               <div className="flex items-center justify-between p-4 border rounded-md">
