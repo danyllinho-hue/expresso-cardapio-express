@@ -29,12 +29,12 @@ export const MenuHeader = ({ config, searchQuery, onSearchChange }: MenuHeaderPr
         <div className="flex items-center justify-between mb-4 animate-fade-in">
           <div className="flex items-center gap-4">
             {/* Logo */}
-            <div className="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 transition-transform overflow-hidden">
+            <div className="w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-lg hover:scale-105 transition-transform overflow-hidden">
               {config?.logo_url ? (
                 <img 
                   src={config.logo_url} 
                   alt={config.nome_restaurante} 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-1"
                 />
               ) : (
                 <span className="text-3xl">🍢</span>
