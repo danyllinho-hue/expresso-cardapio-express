@@ -248,13 +248,13 @@ export const ProductDetailModal = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-[1100px] w-[95vw] p-0 gap-0 max-h-[95vh] overflow-hidden grid lg:grid-cols-[1fr_400px]"
+        className="max-w-[1100px] w-[95vw] p-0 gap-0 h-[95vh] flex flex-col lg:grid lg:grid-cols-[1fr_400px] lg:overflow-hidden"
         onEscapeKeyDown={handleClose}
         aria-describedby="product-description"
         aria-labelledby="product-title"
       >
         {/* Imagem - Coluna Esquerda */}
-        <div className="relative w-full bg-background min-h-[300px] lg:min-h-0 flex flex-col">
+        <div className="relative w-full bg-background min-h-[200px] max-h-[40vh] lg:max-h-none lg:min-h-0 flex flex-col flex-shrink-0">
           {/* Imagem Principal */}
           <div className="flex-1 flex items-center justify-center p-4">
             {displayImage ? (
@@ -304,8 +304,8 @@ export const ProductDetailModal = ({
         </div>
 
         {/* Conteúdo - Coluna Direita - SCROLL CORRIGIDO */}
-        <div className="flex flex-col max-h-[95vh] lg:max-h-full">
-          <div className="p-6 space-y-4 overflow-y-auto flex-1">
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto lg:overflow-y-hidden">
+          <div className="p-6 space-y-4 lg:overflow-y-auto flex-1">
           <DialogHeader>
             <DialogTitle id="product-title" className="text-2xl font-bold text-foreground">
               {item.nome}
@@ -429,7 +429,7 @@ export const ProductDetailModal = ({
           </div>
 
           {/* Botão Adicionar */}
-          <div className="sticky bottom-0 pt-4 pb-2 bg-background border-t mt-auto">
+          <div className="sticky bottom-0 pt-4 pb-4 bg-background border-t mt-auto z-10">
             <Button
               onClick={handleAdd}
               className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-shadow"
