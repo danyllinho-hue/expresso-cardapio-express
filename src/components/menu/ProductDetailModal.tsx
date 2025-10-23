@@ -16,6 +16,7 @@ interface MenuItem {
   descricao: string;
   preco: number;
   imagem: string;
+  image_thumb_url?: string | null;
   categoria_id: string;
   destaque: boolean;
 }
@@ -239,10 +240,22 @@ export const ProductDetailModal = ({
 
   if (!item) return null;
 
-  // Usa a primeira imagem da galeria se existir, senão usa a imagem antiga do item
-  const displayImage = itemImages.length > 0 
-    ? itemImages[selectedImageIndex].image_url 
-    : item.imagem;
+  // Combinar foto principal com fotos adicionais
+  const allImages: MenuItemImage[] = [
+    // Foto principal (se existir)
+    ...(item.imagem ? [{
+      id: 'main',
+      image_url: item.imagem,
+      image_thumb_url: item.image_thumb_url || null,
+      ordem: -1
+    }] : []),
+    // Fotos adicionais da galeria
+    ...itemImages
+  ];
+
+  const displayImage = allImages.length > 0 
+    ? allImages[selectedImageIndex].image_url 
+    : undefined;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -271,9 +284,9 @@ export const ProductDetailModal = ({
           </div>
 
           {/* Thumbnails */}
-          {itemImages.length > 1 && (
+          {allImages.length > 1 && (
             <div className="flex gap-2 p-3 border-t bg-muted/20 overflow-x-auto flex-shrink-0">
-              {itemImages.map((img, index) => (
+              {allImages.map((img, index) => (
                 <button
                   key={img.id}
                   onClick={() => setSelectedImageIndex(index)}
