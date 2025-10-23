@@ -239,11 +239,10 @@ export const ProductDetailModal = ({
 
   if (!item) return null;
 
-  const currentImage = itemImages.length > 0 
-    ? itemImages[selectedImageIndex] 
-    : null;
-
-  const displayImage = currentImage?.image_url || item.imagem;
+  // Usa a primeira imagem da galeria se existir, senão usa a imagem antiga do item
+  const displayImage = itemImages.length > 0 
+    ? itemImages[selectedImageIndex].image_url 
+    : item.imagem;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
