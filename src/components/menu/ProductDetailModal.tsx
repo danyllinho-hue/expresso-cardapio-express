@@ -254,14 +254,14 @@ export const ProductDetailModal = ({
         aria-labelledby="product-title"
       >
         {/* Imagem - Coluna Esquerda */}
-        <div className="relative w-full bg-background min-h-[200px] max-h-[40vh] lg:max-h-none lg:min-h-0 flex flex-col flex-shrink-0">
+        <div className="relative w-full bg-background flex flex-col flex-shrink-0 lg:min-h-0">
           {/* Imagem Principal */}
-          <div className="flex-1 flex items-center justify-center p-4">
+          <div className="flex items-center justify-center p-4 min-h-[250px] max-h-[35vh] lg:max-h-none lg:flex-1">
             {displayImage ? (
               <img
                 src={displayImage}
                 alt={item.nome}
-                className="w-full h-auto object-contain max-h-[500px]"
+                className="w-full h-auto object-contain max-h-full"
                 loading="lazy"
               />
             ) : (
@@ -272,16 +272,16 @@ export const ProductDetailModal = ({
           </div>
 
           {/* Thumbnails */}
-          {itemImages.length > 0 && (
-            <div className="flex gap-2 p-4 border-t bg-muted/20 overflow-x-auto">
+          {itemImages.length > 1 && (
+            <div className="flex gap-2 p-3 border-t bg-muted/20 overflow-x-auto flex-shrink-0">
               {itemImages.map((img, index) => (
                 <button
                   key={img.id}
                   onClick={() => setSelectedImageIndex(index)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  className={`flex-shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-all ${
                     selectedImageIndex === index 
-                      ? 'border-primary ring-2 ring-primary/20' 
-                      : 'border-transparent hover:border-muted-foreground/50'
+                      ? 'border-primary ring-2 ring-primary/20 scale-105' 
+                      : 'border-border hover:border-primary/50'
                   }`}
                 >
                   <img
