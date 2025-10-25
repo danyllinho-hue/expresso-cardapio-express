@@ -73,7 +73,7 @@ const menuItems = [
 ];
 
 export function AdminSidebar() {
-  const { state, setOpen } = useSidebar();
+  const { state, setOpen, setOpenMobile } = useSidebar();
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const isCollapsed = state === "collapsed";
@@ -86,7 +86,9 @@ export function AdminSidebar() {
   };
   
   const handleLinkClick = () => {
-    setOpen(false);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
