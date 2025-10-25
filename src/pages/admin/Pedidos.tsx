@@ -6,14 +6,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Eye, MessageCircle, RefreshCw } from "lucide-react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -137,9 +129,10 @@ const Pedidos = () => {
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pendente: "Pendente",
-      em_preparo: "Em Produção",
-      enviado: "Enviado",
-      concluido: "Concluído",
+      aprovado: "Aprovado",
+      preparando: "Preparando",
+      entregando: "Entregando",
+      entregue: "Entregue",
       cancelado: "Cancelado",
     };
     return labels[status] || status;
@@ -181,17 +174,19 @@ const Pedidos = () => {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
       pendente: "default",
-      em_preparo: "secondary",
-      enviado: "secondary",
-      concluido: "secondary",
+      aprovado: "secondary",
+      preparando: "secondary",
+      entregando: "secondary",
+      entregue: "secondary",
       cancelado: "destructive",
     };
 
     const labels: Record<string, string> = {
       pendente: "Pendente",
-      em_preparo: "Em Produção",
-      enviado: "Enviado",
-      concluido: "Concluído",
+      aprovado: "Aprovado",
+      preparando: "Preparando",
+      entregando: "Entregando",
+      entregue: "Entregue",
       cancelado: "Cancelado",
     };
 
@@ -200,6 +195,14 @@ const Pedidos = () => {
         {labels[status] || status}
       </Badge>
     );
+  };
+
+  const ordersByStatus = {
+    pendente: orders.filter(o => o.status === 'pendente'),
+    aprovado: orders.filter(o => o.status === 'aprovado'),
+    preparando: orders.filter(o => o.status === 'preparando'),
+    entregando: orders.filter(o => o.status === 'entregando'),
+    entregue: orders.filter(o => o.status === 'entregue'),
   };
 
   const formatWhatsApp = (whatsapp: string) => {
@@ -260,11 +263,13 @@ _Sistema Expresso Espetaria_ 🍢`;
     const trackingUrl = `${window.location.origin}/pedido/${order.id}`;
     
     const messages: Record<string, string> = {
-      em_preparo: `🍢 *PEDIDO ACEITO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} foi aceito e já está sendo preparado! 📦\n\n🕒 Previsão: 30-40 min\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      aprovado: `🍢 *PEDIDO APROVADO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} foi aprovado!\n\n🕒 Previsão: 30-40 min\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
       
-      enviado: `🚚 *PEDIDO A CAMINHO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} saiu para entrega!\n\nAguarde o entregador no endereço:\n📍 ${order.delivery_address}\n\nAcompanhe:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      preparando: `👨‍🍳 *PEDIDO EM PRODUÇÃO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} está sendo preparado! 📦\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
       
-      concluido: `✅ *PEDIDO CONCLUÍDO!*\n\nObrigado por escolher o Expresso Espetaria! 🍢\n\nPedido #${order.id.slice(0, 8)} foi finalizado com sucesso.\n\nEsperamos que tenha gostado! Até a próxima! 😊`,
+      entregando: `🚚 *PEDIDO A CAMINHO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} saiu para entrega!\n\nAguarde o entregador no endereço:\n📍 ${order.delivery_address}\n\nAcompanhe:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      
+      entregue: `✅ *PEDIDO ENTREGUE!*\n\nObrigado por escolher o Expresso Espetaria! 🍢\n\nPedido #${order.id.slice(0, 8)} foi entregue com sucesso.\n\nEsperamos que tenha gostado! Até a próxima! 😊`,
       
       cancelado: `❌ *PEDIDO CANCELADO*\n\nOlá *${order.customers.nome}*, infelizmente seu pedido #${order.id.slice(0, 8)} foi cancelado.\n\nPara mais informações, entre em contato:\n📞 (75) 99231-5312\n\n_Expresso Espetaria_ 🍢`
     };
@@ -276,64 +281,104 @@ _Sistema Expresso Espetaria_ 🍢`;
     }
   };
 
-  const OrderStatusActions = ({ order }: { order: Order }) => {
-    switch (order.status) {
-      case 'pendente':
-        return (
-          <div className="flex gap-2">
+  const OrderCard = ({ order }: { order: Order }) => (
+    <Card className="mb-3">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="font-mono text-xs text-muted-foreground">
+                #{order.id.slice(0, 8)}
+              </p>
+              <p className="font-semibold">{order.customers?.nome || "N/A"}</p>
+            </div>
+            <p className="font-bold text-lg">R$ {order.total.toFixed(2)}</p>
+          </div>
+          
+          <div className="text-sm text-muted-foreground">
+            <p className="truncate">{order.delivery_address}</p>
+            <p className="text-xs mt-1">
+              {new Date(order.created_at).toLocaleTimeString("pt-BR", { 
+                hour: "2-digit", 
+                minute: "2-digit" 
+              })}
+            </p>
+          </div>
+
+          {order.status === 'pendente' && (
+            <div className="flex flex-col gap-2">
+              <Button 
+                size="sm" 
+                className="w-full"
+                onClick={() => updateOrderStatus(order.id, 'aprovado', order)}
+              >
+                ✅ APROVAR
+              </Button>
+              <Button 
+                size="sm" 
+                variant="destructive"
+                className="w-full"
+                onClick={() => updateOrderStatus(order.id, 'cancelado', order)}
+              >
+                ❌ CANCELAR
+              </Button>
+            </div>
+          )}
+
+          {order.status === 'aprovado' && (
             <Button 
               size="sm" 
-              onClick={() => updateOrderStatus(order.id, 'em_preparo', order)}
+              className="w-full"
+              onClick={() => updateOrderStatus(order.id, 'preparando', order)}
             >
-              ✅ Aceitar
+              👨‍🍳 PRODUZIR
             </Button>
+          )}
+
+          {order.status === 'preparando' && (
             <Button 
               size="sm" 
-              variant="destructive" 
-              onClick={() => updateOrderStatus(order.id, 'cancelado', order)}
+              className="w-full"
+              onClick={() => updateOrderStatus(order.id, 'entregando', order)}
             >
-              ❌ Cancelar
+              🚚 ENTREGAR
+            </Button>
+          )}
+
+          {order.status === 'entregando' && (
+            <Button 
+              size="sm" 
+              className="w-full"
+              onClick={() => updateOrderStatus(order.id, 'entregue', order)}
+            >
+              ✅ ENTREGUE
+            </Button>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => openOrderDetails(order)}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              Ver
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => sendWhatsAppToCustomer(order)}
+            >
+              <MessageCircle className="h-3 w-3 mr-1" />
+              WhatsApp
             </Button>
           </div>
-        );
-        
-      case 'em_preparo':
-        return (
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              onClick={() => updateOrderStatus(order.id, 'enviado', order)}
-            >
-              🚚 Enviar
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => updateOrderStatus(order.id, 'cancelado', order)}
-            >
-              ❌ Cancelar
-            </Button>
-          </div>
-        );
-        
-      case 'enviado':
-        return (
-          <Button 
-            size="sm" 
-            onClick={() => updateOrderStatus(order.id, 'concluido', order)}
-          >
-            ✅ Concluir
-          </Button>
-        );
-        
-      case 'concluido':
-      case 'cancelado':
-        return getStatusBadge(order.status);
-        
-      default:
-        return null;
-    }
-  };
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   if (loading) {
     return (
@@ -347,7 +392,7 @@ _Sistema Expresso Espetaria_ 🍢`;
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Pedidos</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Gestor de Pedidos</h2>
           <p className="text-muted-foreground">Gerencie todos os pedidos do Expresso</p>
         </div>
         <Button onClick={fetchOrders} variant="outline" size="sm">
@@ -356,154 +401,122 @@ _Sistema Expresso Espetaria_ 🍢`;
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Todos os Pedidos ({orders.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {orders.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+      {orders.length === 0 ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
               Nenhum pedido encontrado
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>WhatsApp</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Pendente</TableHead>
-                    <TableHead>Aprovado</TableHead>
-                    <TableHead>Em Produção</TableHead>
-                    <TableHead>Entregando</TableHead>
-                    <TableHead>Detalhes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono text-xs">
-                        #{order.id.slice(0, 8)}
-                      </TableCell>
-                      <TableCell>{order.customers?.nome || "N/A"}</TableCell>
-                      <TableCell>
-                        <a
-                          href={`https://wa.me/55${formatWhatsApp(order.customers?.whatsapp || "")}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline text-sm"
-                        >
-                          {order.customers?.whatsapp || "N/A"}
-                        </a>
-                      </TableCell>
-                      <TableCell className="font-medium">R$ {order.total.toFixed(2)}</TableCell>
-                      
-                      {/* Coluna PENDENTE */}
-                      <TableCell>
-                        {order.status === 'pendente' ? (
-                          <div className="flex flex-col gap-1">
-                            <Button 
-                              size="sm" 
-                              className="w-full"
-                              onClick={() => updateOrderStatus(order.id, 'em_preparo', order)}
-                            >
-                              ✅ Aceitar
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              className="w-full"
-                              onClick={() => updateOrderStatus(order.id, 'cancelado', order)}
-                            >
-                              ❌ Cancelar
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </TableCell>
-                      
-                      {/* Coluna APROVADO (em_preparo) */}
-                      <TableCell>
-                        {order.status === 'em_preparo' ? (
-                          <div className="flex flex-col gap-1">
-                            {getStatusBadge(order.status)}
-                            <Button 
-                              size="sm"
-                              className="w-full mt-1"
-                              onClick={() => updateOrderStatus(order.id, 'enviado', order)}
-                            >
-                              🚚 Enviar
-                            </Button>
-                          </div>
-                        ) : order.status === 'enviado' || order.status === 'concluido' ? (
-                          <span className="text-green-600 text-xs">✓</span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </TableCell>
-                      
-                      {/* Coluna EM PRODUÇÃO (continuação do aprovado) */}
-                      <TableCell>
-                        {order.status === 'em_preparo' ? (
-                          <span className="text-xs text-muted-foreground">Em preparação...</span>
-                        ) : order.status === 'enviado' || order.status === 'concluido' ? (
-                          <span className="text-green-600 text-xs">✓</span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </TableCell>
-                      
-                      {/* Coluna ENTREGANDO */}
-                      <TableCell>
-                        {order.status === 'enviado' ? (
-                          <div className="flex flex-col gap-1">
-                            {getStatusBadge(order.status)}
-                            <Button 
-                              size="sm"
-                              className="w-full mt-1"
-                              onClick={() => updateOrderStatus(order.id, 'concluido', order)}
-                            >
-                              ✅ Concluir
-                            </Button>
-                          </div>
-                        ) : order.status === 'concluido' ? (
-                          getStatusBadge(order.status)
-                        ) : order.status === 'cancelado' ? (
-                          getStatusBadge(order.status)
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openOrderDetails(order)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => sendWhatsAppToCustomer(order)}
-                          >
-                            <MessageCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* Coluna PENDENTE */}
+          <div className="space-y-3">
+            <Card className="bg-orange-500 border-orange-600">
+              <CardHeader className="p-3">
+                <CardTitle className="text-white text-sm font-semibold flex items-center gap-2">
+                  <span className="text-lg">📋</span>
+                  pendente ({ordersByStatus.pendente.length})
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <div className="space-y-3">
+              {ordersByStatus.pendente.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-8">
+                  Nenhum pedido pendente
+                </p>
+              ) : (
+                ordersByStatus.pendente.map(order => <OrderCard key={order.id} order={order} />)
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+
+          {/* Coluna APROVADO */}
+          <div className="space-y-3">
+            <Card className="bg-purple-600 border-purple-700">
+              <CardHeader className="p-3">
+                <CardTitle className="text-white text-sm font-semibold flex items-center gap-2">
+                  <span className="text-lg">✅</span>
+                  aprovados ({ordersByStatus.aprovado.length})
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <div className="space-y-3">
+              {ordersByStatus.aprovado.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-8">
+                  Nenhum pedido aprovado
+                </p>
+              ) : (
+                ordersByStatus.aprovado.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </div>
+          </div>
+
+          {/* Coluna PREPARANDO */}
+          <div className="space-y-3">
+            <Card className="bg-red-600 border-red-700">
+              <CardHeader className="p-3">
+                <CardTitle className="text-white text-sm font-semibold flex items-center gap-2">
+                  <span className="text-lg">👨‍🍳</span>
+                  preparando ({ordersByStatus.preparando.length})
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <div className="space-y-3">
+              {ordersByStatus.preparando.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-8">
+                  Nenhum pedido sendo preparado
+                </p>
+              ) : (
+                ordersByStatus.preparando.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </div>
+          </div>
+
+          {/* Coluna ENTREGANDO */}
+          <div className="space-y-3">
+            <Card className="bg-blue-600 border-blue-700">
+              <CardHeader className="p-3">
+                <CardTitle className="text-white text-sm font-semibold flex items-center gap-2">
+                  <span className="text-lg">🚚</span>
+                  entregando ({ordersByStatus.entregando.length})
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <div className="space-y-3">
+              {ordersByStatus.entregando.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-8">
+                  Nenhum pedido sendo enviado
+                </p>
+              ) : (
+                ordersByStatus.entregando.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </div>
+          </div>
+
+          {/* Coluna ENTREGUE */}
+          <div className="space-y-3">
+            <Card className="bg-green-600 border-green-700">
+              <CardHeader className="p-3">
+                <CardTitle className="text-white text-sm font-semibold flex items-center gap-2">
+                  <span className="text-lg">✅</span>
+                  entregue ({ordersByStatus.entregue.length})
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <div className="space-y-3">
+              {ordersByStatus.entregue.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-8">
+                  Nenhum pedido entregue
+                </p>
+              ) : (
+                ordersByStatus.entregue.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Detalhes */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -592,10 +605,6 @@ _Sistema Expresso Espetaria_ 🍢`;
                 </div>
               )}
 
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground mb-2">Ações Rápidas</p>
-                <OrderStatusActions order={selectedOrder} />
-              </div>
 
               <div className="flex gap-2 pt-4">
                 <Button
