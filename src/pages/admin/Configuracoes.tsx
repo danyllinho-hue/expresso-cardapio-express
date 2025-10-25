@@ -263,12 +263,12 @@ const Configuracoes = () => {
       </div>
 
       <Tabs defaultValue="loja" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="loja">Loja</TabsTrigger>
-          <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
-          <TabsTrigger value="bairros">Bairros</TabsTrigger>
-          <TabsTrigger value="horarios">Horários</TabsTrigger>
-          <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
+        <TabsList className="w-full inline-flex h-auto flex-nowrap overflow-x-auto overflow-y-hidden justify-start md:grid md:grid-cols-5">
+          <TabsTrigger value="loja" className="flex-shrink-0">Loja</TabsTrigger>
+          <TabsTrigger value="pedidos" className="flex-shrink-0">Pedidos</TabsTrigger>
+          <TabsTrigger value="bairros" className="flex-shrink-0">Bairros</TabsTrigger>
+          <TabsTrigger value="horarios" className="flex-shrink-0">Horários</TabsTrigger>
+          <TabsTrigger value="personalizacao" className="flex-shrink-0">Personalização</TabsTrigger>
         </TabsList>
 
         {/* ABA LOJA */}
