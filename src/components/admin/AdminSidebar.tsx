@@ -22,6 +22,7 @@ import {
   LogOut,
   ShoppingBag,
   Settings,
+  UserCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -63,6 +64,12 @@ const menuItems = [
     url: "/admin/usuarios", 
     icon: Users,
     permission: "manage_users",
+  },
+  { 
+    title: "Clientes",
+    url: "/admin/clientes", 
+    icon: UserCircle,
+    permission: "manage_customers",
   },
   { 
     title: "Configurações",

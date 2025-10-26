@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Eye, RefreshCw, User } from "lucide-react";
+import { Eye, RefreshCw, User, Search, Users, UserCheck, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ const Clientes = () => {
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchCustomers = async () => {
     try {
@@ -160,6 +162,27 @@ const Clientes = () => {
     return new Date(date).toLocaleString("pt-BR");
   };
 
+  // Filtrar clientes baseado na busca
+  const filteredCustomers = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    
+    const search = searchTerm.toLowerCase();
+    return customers.filter(
+      (customer) =>
+        customer.nome.toLowerCase().includes(search) ||
+        customer.whatsapp.includes(search)
+    );
+  }, [customers, searchTerm]);
+
+  // Estatísticas
+  const totalClientes = customers.length;
+  const clientesAtivos = customers.filter(c => 
+    c.dias_sem_comprar !== null && c.dias_sem_comprar <= 30
+  ).length;
+  const clientesInativos = customers.filter(c => 
+    c.dias_sem_comprar === null || c.dias_sem_comprar > 30
+  ).length;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -181,11 +204,81 @@ const Clientes = () => {
         </Button>
       </div>
 
-      {customers.length === 0 ? (
+      {/* Cards de Estatísticas */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalClientes}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Clientes cadastrados no sistema
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
+            <UserCheck className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{clientesAtivos}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Compraram nos últimos 30 dias
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clientes Inativos</CardTitle>
+            <UserX className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{clientesInativos}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Sem compras há mais de 30 dias
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Campo de Busca */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou telefone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Lista de Clientes */}
+      {!searchTerm.trim() ? (
         <Card>
           <CardContent className="py-12">
             <div className="text-center text-muted-foreground">
-              Nenhum cliente encontrado
+              <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Digite para buscar clientes</p>
+              <p className="text-sm mt-1">Use o campo acima para pesquisar por nome ou telefone</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : filteredCustomers.length === 0 ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
+              <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Nenhum cliente encontrado</p>
+              <p className="text-sm mt-1">Tente buscar com outro termo</p>
             </div>
           </CardContent>
         </Card>
@@ -205,7 +298,7 @@ const Clientes = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
+                {filteredCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
