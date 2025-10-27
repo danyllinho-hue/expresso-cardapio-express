@@ -103,6 +103,17 @@ const Usuarios = () => {
     },
   });
 
+  // Mapear roles customizados para roles do banco de dados
+  const mapRoleToDbRole = (customRole: string): string => {
+    const roleMap: Record<string, string> = {
+      'admin': 'admin',
+      'gerente': 'moderator',
+      'atendente': 'user',
+      'cozinha': 'user',
+    };
+    return roleMap[customRole] || 'user';
+  };
+
   const createUserMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('manage-user', {
@@ -112,7 +123,7 @@ const Usuarios = () => {
             email,
             password: senha,
             nome,
-            role,
+            role: mapRoleToDbRole(role),
             permissions: selectedPermissions,
           }
         }
@@ -146,7 +157,7 @@ const Usuarios = () => {
             email,
             password: senha || undefined,
             nome,
-            role,
+            role: mapRoleToDbRole(role),
             permissions: selectedPermissions,
           }
         }
