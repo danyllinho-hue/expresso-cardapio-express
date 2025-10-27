@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Eye, RefreshCw, User, Search, Users, UserCheck, UserX } from "lucide-react";
+import { Eye, RefreshCw, User, Search, Users, UserCheck, UserX, MessageCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +53,7 @@ const Clientes = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const fetchCustomers = async () => {
     try {
@@ -162,17 +163,29 @@ const Clientes = () => {
     return new Date(date).toLocaleString("pt-BR");
   };
 
-  // Filtrar clientes baseado na busca
+  // Filtrar clientes baseado na busca e filtro ativo
   const filteredCustomers = useMemo(() => {
-    if (!searchTerm.trim()) return [];
+    let filtered = customers;
+
+    // Aplicar filtro de status
+    if (activeFilter === 'active') {
+      filtered = customers.filter(c => c.dias_sem_comprar !== null && c.dias_sem_comprar <= 30);
+    } else if (activeFilter === 'inactive') {
+      filtered = customers.filter(c => c.dias_sem_comprar === null || c.dias_sem_comprar > 30);
+    }
+
+    // Aplicar busca por nome ou telefone
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (customer) =>
+          customer.nome.toLowerCase().includes(search) ||
+          customer.whatsapp.includes(search)
+      );
+    }
     
-    const search = searchTerm.toLowerCase();
-    return customers.filter(
-      (customer) =>
-        customer.nome.toLowerCase().includes(search) ||
-        customer.whatsapp.includes(search)
-    );
-  }, [customers, searchTerm]);
+    return filtered;
+  }, [customers, searchTerm, activeFilter]);
 
   // Estatísticas
   const totalClientes = customers.length;
@@ -206,7 +219,13 @@ const Clientes = () => {
 
       {/* Cards de Estatísticas */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
+          onClick={() => {
+            setActiveFilter('all');
+            setSearchTerm('');
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -219,7 +238,13 @@ const Clientes = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
+          onClick={() => {
+            setActiveFilter('active');
+            setSearchTerm('');
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
             <UserCheck className="h-4 w-4 text-green-600" />
@@ -232,7 +257,13 @@ const Clientes = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
+          onClick={() => {
+            setActiveFilter('inactive');
+            setSearchTerm('');
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Clientes Inativos</CardTitle>
             <UserX className="h-4 w-4 text-orange-600" />
@@ -262,13 +293,13 @@ const Clientes = () => {
       </Card>
 
       {/* Lista de Clientes */}
-      {!searchTerm.trim() ? (
+      {filteredCustomers.length === 0 && activeFilter === 'all' && !searchTerm.trim() ? (
         <Card>
           <CardContent className="py-12">
             <div className="text-center text-muted-foreground">
               <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">Digite para buscar clientes</p>
-              <p className="text-sm mt-1">Use o campo acima para pesquisar por nome ou telefone</p>
+              <p className="text-lg font-medium">Clique em um card acima para ver os clientes</p>
+              <p className="text-sm mt-1">Ou use o campo de busca para pesquisar por nome ou telefone</p>
             </div>
           </CardContent>
         </Card>
@@ -350,8 +381,19 @@ const Clientes = () => {
             <div className="space-y-6">
               {/* Informações do Cliente */}
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Informações Pessoais</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const phone = selectedCustomer.whatsapp.replace(/\D/g, '');
+                      window.open(`https://wa.me/${phone}`, '_blank');
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    WhatsApp
+                  </Button>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
