@@ -59,11 +59,11 @@ Deno.serve(async (req) => {
     console.log(`[manage-user] Operação: ${operation}`, userData);
 
     // Input validation
-    const validRoles = ['admin', 'moderator', 'user'];
+    const validRoles = ['admin', 'gerente', 'atendente', 'cozinha'];
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     if (userData.role && !validRoles.includes(userData.role)) {
-      throw new Error('Função inválida. Deve ser: admin, moderator ou user');
+      throw new Error('Função inválida. Deve ser: admin, gerente, atendente ou cozinha');
     }
 
     if (userData.nome && (userData.nome.length < 2 || userData.nome.length > 100)) {
