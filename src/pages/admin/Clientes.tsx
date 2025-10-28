@@ -384,8 +384,8 @@ const Clientes = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Informações Pessoais</CardTitle>
                   <Button
-                    variant="outline"
                     size="sm"
+                    className="bg-yellow-500 text-black hover:bg-black hover:text-yellow-500 transition-colors"
                     onClick={() => {
                       const phone = selectedCustomer.whatsapp.replace(/\D/g, '');
                       window.open(`https://wa.me/${phone}`, '_blank');
