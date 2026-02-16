@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   Settings,
   UserCircle,
+  FileDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -75,6 +76,12 @@ const menuItems = [
     title: "Configurações",
     url: "/admin/configuracoes", 
     icon: Settings,
+    permission: "manage_config",
+  },
+  { 
+    title: "Exportar Dados",
+    url: "/admin/exportar", 
+    icon: FileDown,
     permission: "manage_config",
   },
 ];
