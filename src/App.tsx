@@ -15,6 +15,7 @@ import Complementos from "./pages/admin/Complementos";
 import Usuarios from "./pages/admin/Usuarios";
 import Clientes from "./pages/admin/Clientes";
 import Configuracoes from "./pages/admin/Configuracoes";
+import ExportarDados from "./pages/admin/ExportarDados";
 import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -87,6 +88,14 @@ const App = () => (
               element={
                 <ProtectedRoute permission="manage_config">
                   <Configuracoes />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="exportar"
+              element={
+                <ProtectedRoute permission="manage_config">
+                  <ExportarDados />
                 </ProtectedRoute>
               } 
             />
