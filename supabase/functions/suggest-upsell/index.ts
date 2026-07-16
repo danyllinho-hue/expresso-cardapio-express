@@ -24,6 +24,19 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    // Get config for OpenAI Key
+    const { data: config } = await supabase
+      .from('restaurant_config')
+      .select('openai_api_key')
+      .single();
+
+    const apiKey = config?.openai_api_key || Deno.env.get('OPENAI_API_KEY');
+
+    if (!apiKey) {
+      console.error('No OpenAI API key found in config or environment');
+      return Response.json({ suggestions: [] }, { headers: corsHeaders });
+    }
+
     // Cart signature (deterministic)
     const signature = await sha256(
       cart.map(c => `${c.id}x${c.quantity}`).sort().join('|')
@@ -73,17 +86,14 @@ REGRAS:
 5. Retorne SOMENTE JSON válido no formato: {"suggestions":[{"item_id":"uuid","motivo_curto":"texto"}]}
 6. Entre 2 e 4 sugestões. Use exatamente os IDs entre colchetes do catálogo.`;
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) return Response.json({ suggestions: [] }, { headers: corsHeaders });
-
-    const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-3.5-flash',
+        model: 'gpt-3.5-turbo',
         messages: [
           { role: 'system', content: 'Você retorna somente JSON válido, sem markdown.' },
           { role: 'user', content: prompt },
@@ -94,7 +104,7 @@ REGRAS:
     });
 
     if (!aiResp.ok) {
-      console.error('AI gateway error', aiResp.status, await aiResp.text());
+      console.error('OpenAI error', aiResp.status, await aiResp.text());
       return Response.json({ suggestions: [] }, { headers: corsHeaders });
     }
 

@@ -44,6 +44,7 @@ interface RestaurantConfig {
   aceitar_loja_fechada?: boolean;
   upsell_ai_enabled?: boolean;
   upsell_min_subtotal?: number;
+  openai_api_key?: string;
   horario_funcionamento?: any;
   logo_url?: string;
   cor_primaria?: string;
@@ -605,6 +606,18 @@ const Configuracoes = () => {
                     setConfig({ ...config, upsell_ai_enabled: checked })
                   }
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Chave da API OpenAI</Label>
+                <div className="relative">
+                  <Input
+                    type="password"
+                    placeholder="sk-..."
+                    value={config.openai_api_key || ""}
+                    onChange={(e) => setConfig({ ...config, openai_api_key: e.target.value })}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Utilizada para gerar sugestões inteligentes de upsell.</p>
               </div>
               <div className="space-y-2">
                 <Label>Subtotal mínimo para exibir (R$)</Label>
