@@ -486,21 +486,69 @@ const Configuracoes = () => {
               
               {config.habilitar_whatsapp && (
                 <>
-                  <div className="space-y-2">
-                    <Label>Número do WhatsApp</Label>
-                    <Input
-                      value={config.whatsapp_oficial}
-                      onChange={(e) => setConfig({ ...config, whatsapp_oficial: e.target.value })}
-                      placeholder="75992315312"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mensagem de redirecionamento para o WhatsApp</Label>
-                    <Textarea
-                      value={config.whatsapp_mensagem || ""}
-                      onChange={(e) => setConfig({ ...config, whatsapp_mensagem: e.target.value })}
-                      placeholder="Olá! Vim pelo Cardápio Digital..."
-                    />
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label>Método de Envio / API</Label>
+                      <Select
+                        value={config.whatsapp_api_type || 'wa_me'}
+                        onValueChange={(value: 'wa_me' | 'uazapi') => 
+                          setConfig({ ...config, whatsapp_api_type: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o método" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="wa_me">WhatsApp Web (Manual/wa.me)</SelectItem>
+                          <SelectItem value="uazapi">UAZAPI (Automático)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {config.whatsapp_api_type === 'uazapi' 
+                          ? 'As mensagens serão enviadas automaticamente pelo servidor via UAZAPI.' 
+                          : 'O navegador abrirá uma nova janela do WhatsApp Web para enviar as mensagens.'}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Número do WhatsApp da Loja</Label>
+                      <Input
+                        value={config.whatsapp_oficial}
+                        onChange={(e) => setConfig({ ...config, whatsapp_oficial: e.target.value })}
+                        placeholder="Ex: 75992315312"
+                      />
+                    </div>
+
+                    {config.whatsapp_api_type === 'uazapi' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
+                        <div className="space-y-2">
+                          <Label>UAZAPI Instance ID</Label>
+                          <Input
+                            value={config.uazapi_instance_id || ""}
+                            onChange={(e) => setConfig({ ...config, uazapi_instance_id: e.target.value })}
+                            placeholder="Ex: 3B82F6..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>UAZAPI Token</Label>
+                          <Input
+                            type="password"
+                            value={config.uazapi_token || ""}
+                            onChange={(e) => setConfig({ ...config, uazapi_token: e.target.value })}
+                            placeholder="Seu token da UAZAPI"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Mensagem de Saudação (Redirecionamento)</Label>
+                      <Textarea
+                        value={config.whatsapp_mensagem || ""}
+                        onChange={(e) => setConfig({ ...config, whatsapp_mensagem: e.target.value })}
+                        placeholder="Olá! Vim pelo Cardápio Digital..."
+                      />
+                    </div>
                   </div>
                 </>
               )}
