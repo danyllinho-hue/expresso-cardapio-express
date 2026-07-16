@@ -67,7 +67,7 @@ export const CartSheet = ({
 
   useEffect(() => {
     supabase
-      .from("public_restaurant_info")
+      .from("restaurant_config")
       .select("upsell_ai_enabled, upsell_min_subtotal, openai_api_key")
       .maybeSingle()
       .then(({ data }) => {
