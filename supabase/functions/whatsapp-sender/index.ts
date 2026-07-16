@@ -24,8 +24,8 @@ Deno.serve(async (req) => {
     const { order, newStatus, action, instanceId, token, serverUrl } = body
     
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     )
 
     // Se a ação for conectar, gera o QR Code
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
       if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
       
       const baseUrl = serverUrl?.trim()?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
-      console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl}`)
+      console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl} with token: ${token ? 'present' : 'missing'}`)
       
       // Tentativa 1: Endpoint /instance/connect
       const connectUrl = `${baseUrl}/instance/connect`
@@ -147,9 +147,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
-  } catch (error) {
-    console.error('[whatsapp-sender] Erro:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: any) {
+    console.error('[whatsapp-sender] Erro detalhado:', error.message, error.stack)
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
