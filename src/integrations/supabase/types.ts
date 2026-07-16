@@ -130,6 +130,48 @@ export type Database = {
           },
         ]
       }
+      customer_addresses: {
+        Row: {
+          bairro: string | null
+          complemento: string | null
+          created_at: string
+          endereco: string
+          id: string
+          label: string
+          numero: string | null
+          padrao: boolean
+          referencia: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string
+          endereco: string
+          id?: string
+          label?: string
+          numero?: string | null
+          padrao?: boolean
+          referencia?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bairro?: string | null
+          complemento?: string | null
+          created_at?: string
+          endereco?: string
+          id?: string
+          label?: string
+          numero?: string | null
+          padrao?: boolean
+          referencia?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string | null
@@ -137,6 +179,7 @@ export type Database = {
           endereco: string | null
           id: string
           nome: string
+          user_id: string | null
           whatsapp: string
         }
         Insert: {
@@ -145,6 +188,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome: string
+          user_id?: string | null
           whatsapp: string
         }
         Update: {
@@ -153,6 +197,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome?: string
+          user_id?: string | null
           whatsapp?: string
         }
         Relationships: []
@@ -403,6 +448,7 @@ export type Database = {
           notes: string | null
           status: string
           total: number
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -412,6 +458,7 @@ export type Database = {
           notes?: string | null
           status?: string
           total: number
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -421,6 +468,7 @@ export type Database = {
           notes?: string | null
           status?: string
           total?: number
+          user_id?: string | null
         }
         Relationships: [
           {
