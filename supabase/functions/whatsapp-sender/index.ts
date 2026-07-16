@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     if (action === 'connect') {
       if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
       
-      const baseUrl = serverUrl?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
+      const baseUrl = serverUrl?.trim()?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
       console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl}`)
       
       // Tentativa 1: Endpoint /instance/connect
@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     })
 
     // Disparar via UAZAPI
-    const baseUrl = config.uazapi_server_url?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
+    const baseUrl = config.uazapi_server_url?.trim()?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
     const url = `${baseUrl}/message/sendText`
     const response = await fetch(url, {
       method: 'POST',
