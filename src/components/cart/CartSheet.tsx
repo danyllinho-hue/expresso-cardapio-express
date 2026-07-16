@@ -66,17 +66,29 @@ export const CartSheet = ({
   const [hasApiKey, setHasApiKey] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("restaurant_config")
-      .select("upsell_ai_enabled, upsell_min_subtotal, openai_api_key")
-      .maybeSingle()
-      .then(({ data }) => {
+    const fetchConfig = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("restaurant_config")
+          .select("upsell_ai_enabled, upsell_min_subtotal, openai_api_key")
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error fetching restaurant config for upsell:", error);
+          return;
+        }
+
         if (data) {
           setUpsellEnabled(data.upsell_ai_enabled ?? false);
           setMinSubtotal(data.upsell_min_subtotal ?? 15);
           setHasApiKey(!!data.openai_api_key);
         }
-      });
+      } catch (err) {
+        console.error("Exception in upsell config check:", err);
+      }
+    };
+    
+    fetchConfig();
   }, []);
 
   const subtotal = cart.reduce((sum, c) => {
