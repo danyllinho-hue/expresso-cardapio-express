@@ -10,7 +10,7 @@ interface MenuItem {
   preco: number;
   imagem: string;
   destaque: boolean;
-  categoria_id?: string;
+  categoria_id: string;
 }
 
 interface Suggestion {
