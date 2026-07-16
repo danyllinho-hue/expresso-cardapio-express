@@ -5,7 +5,33 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { order, newStatus } = await req.json()
+    const { order, newStatus, action, instanceId, token } = await req.json()
+    
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    // Se a ação for conectar, gera o QR Code
+    if (action === 'connect') {
+      if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
+      
+      const url = `https://api.uazapi.com.br/instance/connect`
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ instanceId })
+      })
+      
+      const result = await response.json()
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     if (!order || !newStatus) throw new Error('Dados do pedido ausentes')
 
     const supabase = createClient(
