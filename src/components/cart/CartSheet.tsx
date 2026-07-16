@@ -1,10 +1,12 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Trash2 } from "lucide-react";
+import { ShoppingCart, Trash2, Sparkles } from "lucide-react";
 import { CartItem } from "./CartItem";
 import { CheckoutForm } from "./CheckoutForm";
-import { useState } from "react";
+import { UpsellStep } from "./UpsellStep";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MenuItem {
   id: string;
@@ -40,8 +42,11 @@ interface CartSheetProps {
   onRemoveItem: (itemId: string) => void;
   onUpdateNotes: (itemId: string, notes: string) => void;
   onClearCart: () => void;
+  onAddItem: (item: MenuItem) => void;
   isOpen: boolean;
 }
+
+type Step = "cart" | "upsell" | "checkout";
 
 export const CartSheet = ({
   open,
@@ -51,13 +56,28 @@ export const CartSheet = ({
   onRemoveItem,
   onUpdateNotes,
   onClearCart,
+  onAddItem,
   isOpen,
 }: CartSheetProps) => {
-  const [showCheckout, setShowCheckout] = useState(false);
+  const [step, setStep] = useState<Step>("cart");
+  const [upsellEnabled, setUpsellEnabled] = useState(true);
+  const [minSubtotal, setMinSubtotal] = useState(15);
+
+  useEffect(() => {
+    supabase
+      .from("public_restaurant_info")
+      .select("upsell_ai_enabled, upsell_min_subtotal")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setUpsellEnabled(data.upsell_ai_enabled ?? true);
+          setMinSubtotal(data.upsell_min_subtotal ?? 15);
+        }
+      });
+  }, []);
 
   const subtotal = cart.reduce((sum, c) => {
     let itemTotal = c.item.preco;
-    
     if (c.complements) {
       c.complements.forEach(comp => {
         comp.options.forEach(opt => {
@@ -65,15 +85,27 @@ export const CartSheet = ({
         });
       });
     }
-    
     return sum + (itemTotal * c.quantity);
   }, 0);
-  const deliveryFee = subtotal > 0 ? 5.00 : 0; // Taxa fixa de entrega
+  const deliveryFee = subtotal > 0 ? 5.0 : 0;
   const total = subtotal + deliveryFee;
 
-  if (showCheckout) {
+  const goToCheckout = () => {
+    if (upsellEnabled && subtotal >= minSubtotal) {
+      setStep("upsell");
+    } else {
+      setStep("checkout");
+    }
+  };
+
+  const handleOpenChange = (v: boolean) => {
+    if (!v) setStep("cart");
+    onOpenChange(v);
+  };
+
+  if (step === "checkout") {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
@@ -81,15 +113,14 @@ export const CartSheet = ({
               Finalizar Pedido
             </SheetTitle>
           </SheetHeader>
-          
           <CheckoutForm
             cart={cart}
             total={total}
-            onBack={() => setShowCheckout(false)}
+            onBack={() => setStep(upsellEnabled && subtotal >= minSubtotal ? "upsell" : "cart")}
             onSuccess={() => {
               onClearCart();
               onOpenChange(false);
-              setShowCheckout(false);
+              setStep("cart");
             }}
           />
         </SheetContent>
@@ -97,8 +128,29 @@ export const CartSheet = ({
     );
   }
 
+  if (step === "upsell") {
+    return (
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Sugestões pra você
+            </SheetTitle>
+          </SheetHeader>
+          <UpsellStep
+            cart={cart}
+            onBack={() => setStep("cart")}
+            onContinue={() => setStep("checkout")}
+            onAddItem={onAddItem}
+          />
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto flex flex-col">
         <SheetHeader>
           <div className="flex items-center justify-between">
@@ -130,7 +182,6 @@ export const CartSheet = ({
           </div>
         ) : (
           <>
-            {/* Cart Items */}
             <div className="flex-1 space-y-4 py-6">
               {cart.map((cartItem, index) => (
                 <CartItem
@@ -145,7 +196,6 @@ export const CartSheet = ({
 
             <Separator />
 
-            {/* Order Summary */}
             <div className="space-y-3 py-6">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
@@ -162,11 +212,10 @@ export const CartSheet = ({
               </div>
             </div>
 
-            {/* Checkout Button */}
             <Button
               size="lg"
               className="w-full"
-              onClick={() => setShowCheckout(true)}
+              onClick={goToCheckout}
               disabled={!isOpen}
             >
               {isOpen ? "Continuar para Pagamento" : "Restaurante Fechado"}
