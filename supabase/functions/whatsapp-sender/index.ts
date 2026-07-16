@@ -33,10 +33,12 @@ Deno.serve(async (req) => {
       if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
       
       const baseUrl = serverUrl?.trim()?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
-      console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl} with token: ${token ? 'present' : 'missing'}`)
+      console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl}`)
       
-      // Tentativa 1: Endpoint /instance/connect
+      // Tentativa 1: POST /instance/connect
       const connectUrl = `${baseUrl}/instance/connect`
+      console.log(`[whatsapp-sender] Fetching: ${connectUrl}`)
+      
       const response = await fetch(connectUrl, {
         method: 'POST',
         headers: {
@@ -50,36 +52,52 @@ Deno.serve(async (req) => {
       })
       
       let result;
+      const responseText = await response.text();
+      console.log(`[whatsapp-sender] UAZAPI /instance/connect status: ${response.status}, text: ${responseText}`);
+      
       try {
-        result = await response.json()
+        result = JSON.parse(responseText);
       } catch (e) {
-        result = { error: 'Falha ao processar resposta da UAZAPI' }
+        result = { error: 'Falha ao processar resposta JSON da UAZAPI', raw: responseText }
       }
 
-      console.log(`[whatsapp-sender] UAZAPI connect response status: ${response.status}`, JSON.stringify(result))
-      
-      // Se falhar, tenta o endpoint /instance/qrcode (alguns modelos usam esse)
-      if (response.status !== 200) {
-        console.log(`[whatsapp-sender] Attempting alternative /instance/qrcode endpoint...`)
-        const qrUrl = `${baseUrl}/instance/qrcode?instanceId=${instanceId}`
-        const qrResponse = await fetch(qrUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+      // Se for 200/201 e tiver base64 ou estiver conectado, retorna
+      if (response.ok && (result.base64 || result.status === "CONNECTED" || result.qrcode)) {
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
-        
-        if (qrResponse.ok) {
-          const qrResult = await qrResponse.json()
+      }
+      
+      // Se falhar o POST, tenta o GET /instance/qrcode (fallback comum)
+      console.log(`[whatsapp-sender] Fallback to GET /instance/qrcode...`)
+      const qrUrl = `${baseUrl}/instance/qrcode?instanceId=${instanceId}`
+      const qrResponse = await fetch(qrUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      const qrText = await qrResponse.text();
+      console.log(`[whatsapp-sender] UAZAPI /instance/qrcode status: ${qrResponse.status}, text: ${qrText}`);
+      
+      if (qrResponse.ok) {
+        try {
+          const qrResult = JSON.parse(qrText);
           return new Response(JSON.stringify(qrResult), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
+        } catch (e) {
+          // Se não for JSON, pode ser a imagem direta? Algumas APIs retornam binário.
+          // Mas UAZAPI geralmente retorna JSON com base64.
         }
       }
       
+      // Se nada funcionou, retorna o erro original do POST ou o do GET
       return new Response(JSON.stringify(result), {
-        status: response.status,
+        status: response.status === 200 ? 400 : response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }

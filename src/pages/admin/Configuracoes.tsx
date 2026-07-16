@@ -281,10 +281,10 @@ const Configuracoes = () => {
       if (error) throw error;
       const result = data;
       
-      if (result.base64) {
-        setQrCode(result.base64);
+      if (result.base64 || result.qrcode) {
+        setQrCode(result.base64 || result.qrcode);
         toast.success("QR Code gerado com sucesso!");
-      } else if (result.status === "CONNECTED") {
+      } else if (result.status === "CONNECTED" || result.state === "CONNECTED") {
         toast.success("Instância já está conectada!");
       } else {
         console.error("Erro UAZAPI:", result);
