@@ -15,6 +15,7 @@ interface MenuItem {
   preco: number;
   imagem: string;
   destaque: boolean;
+  categoria_id: string;
 }
 
 interface SelectedComplement {
