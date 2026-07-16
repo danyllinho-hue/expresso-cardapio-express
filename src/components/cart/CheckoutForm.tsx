@@ -116,13 +116,23 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
       }
 
       // Create or get customer
-      const { data: existingCustomer } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("whatsapp", formData.whatsapp)
-        .maybeSingle();
-
-      let customerId = existingCustomer?.id;
+      let customerId: string | undefined;
+      if (user) {
+        const { data: mine } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        customerId = mine?.id;
+      }
+      if (!customerId) {
+        const { data: existingCustomer } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("whatsapp", formData.whatsapp)
+          .maybeSingle();
+        customerId = existingCustomer?.id;
+      }
 
       if (!customerId) {
         const { data: newCustomer, error: customerError } = await supabase
@@ -132,12 +142,24 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
             whatsapp: formData.whatsapp,
             endereco: formData.endereco,
             data_nascimento: formData.data_nascimento || null,
+            user_id: user?.id ?? null,
           })
           .select("id")
           .single();
 
         if (customerError) throw customerError;
         customerId = newCustomer.id;
+      } else if (user) {
+        // Keep customer row linked and refreshed with latest info
+        await supabase
+          .from("customers")
+          .update({
+            user_id: user.id,
+            nome: formData.nome,
+            endereco: formData.endereco,
+            data_nascimento: formData.data_nascimento || null,
+          })
+          .eq("id", customerId);
       }
 
       // Create order
@@ -145,6 +167,7 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
         .from("orders")
         .insert({
           customer_id: customerId,
+          user_id: user?.id ?? null,
           total,
           delivery_address: formData.endereco,
           notes: formData.notes || null,
@@ -154,6 +177,7 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
         .single();
 
       if (orderError) throw orderError;
+
 
       // Create order items
       const orderItems = cart.map((cartItem) => ({
