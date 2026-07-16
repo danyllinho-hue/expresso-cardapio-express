@@ -27,6 +27,9 @@ interface RestaurantConfig {
   telefone?: string;
   email?: string;
   whatsapp_oficial: string;
+  whatsapp_api_type?: 'wa_me' | 'uazapi';
+  uazapi_instance_id?: string;
+  uazapi_token?: string;
   facebook?: string;
   instagram?: string;
   youtube?: string;
