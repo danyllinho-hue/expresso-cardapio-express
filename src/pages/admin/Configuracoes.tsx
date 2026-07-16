@@ -261,20 +261,17 @@ const Configuracoes = () => {
 
     setFetchingQr(true);
     try {
-      // UAZAPI endpoint para gerar QR Code
-      const url = `https://api.uazapi.com.br/instance/connect`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.uazapi_token}`
-        },
-        body: JSON.stringify({
-          instanceId: config.uazapi_instance_id
-        })
+      // Chamada via Edge Function para evitar erro de CORS
+      const { data, error } = await supabase.functions.invoke('whatsapp-sender', {
+        body: { 
+          action: 'connect',
+          instanceId: config.uazapi_instance_id,
+          token: config.uazapi_token
+        }
       });
 
-      const result = await response.json();
+      if (error) throw error;
+      const result = data;
       
       if (result.base64) {
         setQrCode(result.base64);
