@@ -1,8 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Clock, MapPin, Store, Truck, Search } from "lucide-react";
+import { Clock, MapPin, Store, Truck, Search, User } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useClienteAuth } from "@/contexts/ClienteAuthContext";
+
 
 interface RestaurantConfig {
   nome_restaurante: string;
@@ -21,6 +23,8 @@ interface MenuHeaderProps {
 
 export const MenuHeader = ({ config, searchQuery, onSearchChange }: MenuHeaderProps) => {
   const isOpen = config?.status_funcionamento === "aberto";
+  const { user, displayName } = useClienteAuth();
+
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b shadow-md">
@@ -85,13 +89,26 @@ export const MenuHeader = ({ config, searchQuery, onSearchChange }: MenuHeaderPr
             </div>
           </div>
 
-          {/* Botão Admin (apenas em desktop) */}
-          <Link to="/login" className="hidden md:block">
-            <Button variant="outline" size="sm" className="shadow-sm">
-              Admin
-            </Button>
-          </Link>
-        </div>
+          {/* Ações */}
+          <div className="hidden md:flex items-center gap-2">
+            {user ? (
+              <Link to="/cliente/conta">
+                <Button variant="outline" size="sm" className="shadow-sm">
+                  <User className="w-4 h-4 mr-1" /> {displayName || "Minha conta"}
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/cliente/login">
+                <Button variant="outline" size="sm" className="shadow-sm">
+                  <User className="w-4 h-4 mr-1" /> Entrar
+                </Button>
+              </Link>
+            )}
+            <Link to="/login">
+              <Button variant="ghost" size="sm" className="shadow-sm">Admin</Button>
+            </Link>
+          </div>
+
 
         {/* Endereço */}
         <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4 animate-fade-in">
