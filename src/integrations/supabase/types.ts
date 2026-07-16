@@ -312,7 +312,9 @@ export type Database = {
       menu_items: {
         Row: {
           categoria_id: string | null
+          combina_com: string[] | null
           created_at: string | null
+          custo_cmv: number | null
           descricao: string | null
           destaque: boolean | null
           id: string
@@ -321,10 +323,13 @@ export type Database = {
           nome: string
           preco: number
           status: string
+          tipo_item: string | null
         }
         Insert: {
           categoria_id?: string | null
+          combina_com?: string[] | null
           created_at?: string | null
+          custo_cmv?: number | null
           descricao?: string | null
           destaque?: boolean | null
           id?: string
@@ -333,10 +338,13 @@ export type Database = {
           nome: string
           preco: number
           status?: string
+          tipo_item?: string | null
         }
         Update: {
           categoria_id?: string | null
+          combina_com?: string[] | null
           created_at?: string | null
+          custo_cmv?: number | null
           descricao?: string | null
           destaque?: boolean | null
           id?: string
@@ -345,6 +353,7 @@ export type Database = {
           nome?: string
           preco?: number
           status?: string
+          tipo_item?: string | null
         }
         Relationships: [
           {
@@ -535,6 +544,8 @@ export type Database = {
           telefone: string | null
           tempo_entrega: string | null
           twitter: string | null
+          upsell_ai_enabled: boolean
+          upsell_min_subtotal: number
           valor_frete_gratis: number | null
           valor_pedido_minimo: number | null
           whatsapp_mensagem: string | null
@@ -571,6 +582,8 @@ export type Database = {
           telefone?: string | null
           tempo_entrega?: string | null
           twitter?: string | null
+          upsell_ai_enabled?: boolean
+          upsell_min_subtotal?: number
           valor_frete_gratis?: number | null
           valor_pedido_minimo?: number | null
           whatsapp_mensagem?: string | null
@@ -607,11 +620,31 @@ export type Database = {
           telefone?: string | null
           tempo_entrega?: string | null
           twitter?: string | null
+          upsell_ai_enabled?: boolean
+          upsell_min_subtotal?: number
           valor_frete_gratis?: number | null
           valor_pedido_minimo?: number | null
           whatsapp_mensagem?: string | null
           whatsapp_oficial?: string
           youtube?: string | null
+        }
+        Relationships: []
+      }
+      upsell_suggestions_cache: {
+        Row: {
+          cart_signature: string
+          created_at: string
+          suggestions: Json
+        }
+        Insert: {
+          cart_signature: string
+          created_at?: string
+          suggestions: Json
+        }
+        Update: {
+          cart_signature?: string
+          created_at?: string
+          suggestions?: Json
         }
         Relationships: []
       }
@@ -664,91 +697,58 @@ export type Database = {
     Views: {
       public_restaurant_info: {
         Row: {
-          bairro: string | null
-          cep: string | null
-          cidade: string | null
-          complemento: string | null
+          aceitar_loja_fechada: boolean | null
           cor_primaria: string | null
           cor_secundaria: string | null
           endereco: string | null
-          estado: string | null
-          exibir_dados_publicos: boolean | null
-          exibir_endereco: boolean | null
-          facebook: string | null
-          habilitar_whatsapp: boolean | null
           horario_funcionamento: Json | null
           id: string | null
-          instagram: string | null
           logo_url: string | null
           modo_atendimento: string | null
           nome_restaurante: string | null
-          numero: string | null
-          site: string | null
           status_funcionamento: string | null
-          telefone: string | null
           tempo_entrega: string | null
-          twitter: string | null
-          whatsapp_mensagem: string | null
+          upsell_ai_enabled: boolean | null
+          upsell_min_subtotal: number | null
+          valor_frete_gratis: number | null
+          valor_pedido_minimo: number | null
           whatsapp_oficial: string | null
-          youtube: string | null
         }
         Insert: {
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
-          complemento?: string | null
+          aceitar_loja_fechada?: boolean | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           endereco?: string | null
-          estado?: string | null
-          exibir_dados_publicos?: boolean | null
-          exibir_endereco?: boolean | null
-          facebook?: string | null
-          habilitar_whatsapp?: boolean | null
           horario_funcionamento?: Json | null
           id?: string | null
-          instagram?: string | null
           logo_url?: string | null
           modo_atendimento?: string | null
           nome_restaurante?: string | null
-          numero?: string | null
-          site?: string | null
           status_funcionamento?: string | null
-          telefone?: string | null
           tempo_entrega?: string | null
-          twitter?: string | null
-          whatsapp_mensagem?: string | null
+          upsell_ai_enabled?: boolean | null
+          upsell_min_subtotal?: number | null
+          valor_frete_gratis?: number | null
+          valor_pedido_minimo?: number | null
           whatsapp_oficial?: string | null
-          youtube?: string | null
         }
         Update: {
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
-          complemento?: string | null
+          aceitar_loja_fechada?: boolean | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           endereco?: string | null
-          estado?: string | null
-          exibir_dados_publicos?: boolean | null
-          exibir_endereco?: boolean | null
-          facebook?: string | null
-          habilitar_whatsapp?: boolean | null
           horario_funcionamento?: Json | null
           id?: string | null
-          instagram?: string | null
           logo_url?: string | null
           modo_atendimento?: string | null
           nome_restaurante?: string | null
-          numero?: string | null
-          site?: string | null
           status_funcionamento?: string | null
-          telefone?: string | null
           tempo_entrega?: string | null
-          twitter?: string | null
-          whatsapp_mensagem?: string | null
+          upsell_ai_enabled?: boolean | null
+          upsell_min_subtotal?: number | null
+          valor_frete_gratis?: number | null
+          valor_pedido_minimo?: number | null
           whatsapp_oficial?: string | null
-          youtube?: string | null
         }
         Relationships: []
       }

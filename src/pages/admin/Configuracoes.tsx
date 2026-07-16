@@ -42,6 +42,8 @@ interface RestaurantConfig {
   modo_atendimento: string;
   tempo_entrega: string;
   aceitar_loja_fechada?: boolean;
+  upsell_ai_enabled?: boolean;
+  upsell_min_subtotal?: number;
   horario_funcionamento?: any;
   logo_url?: string;
   cor_primaria?: string;
@@ -583,6 +585,38 @@ const Configuracoes = () => {
                   onChange={(e) => setConfig({ ...config, tempo_entrega: e.target.value })}
                   placeholder="30-40 min"
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>✨ Sugestões Inteligentes (IA)</CardTitle>
+              <CardDescription>
+                Página automática entre carrinho e checkout que sugere itens personalizados por IA.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Ativar sugestões IA no checkout</Label>
+                <Switch
+                  checked={config.upsell_ai_enabled ?? true}
+                  onCheckedChange={(checked) =>
+                    setConfig({ ...config, upsell_ai_enabled: checked })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subtotal mínimo para exibir (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={config.upsell_min_subtotal ?? 15}
+                  onChange={(e) =>
+                    setConfig({ ...config, upsell_min_subtotal: parseFloat(e.target.value) || 0 })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">Abaixo desse valor a página é pulada.</p>
               </div>
             </CardContent>
           </Card>

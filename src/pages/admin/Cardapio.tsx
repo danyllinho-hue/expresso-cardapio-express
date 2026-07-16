@@ -24,6 +24,9 @@ interface MenuItem {
   image_thumb_url: string | null;
   status: string;
   destaque: boolean;
+  custo_cmv: number | null;
+  tipo_item: string | null;
+  combina_com: string[] | null;
 }
 
 interface Category {
@@ -62,6 +65,9 @@ const Cardapio = () => {
     imagem_thumb: "",
     status: "ativo",
     destaque: false,
+    custo_cmv: "",
+    tipo_item: "",
+    combina_com: "",
   });
 
   useEffect(() => {
@@ -135,6 +141,11 @@ const Cardapio = () => {
       image_thumb_url: formData.imagem_thumb || null,
       status: formData.status,
       destaque: formData.destaque,
+      custo_cmv: formData.custo_cmv ? parseFloat(formData.custo_cmv) : null,
+      tipo_item: formData.tipo_item || null,
+      combina_com: formData.combina_com
+        ? formData.combina_com.split(",").map(s => s.trim()).filter(Boolean)
+        : [],
     };
 
     let itemId: string;
@@ -231,6 +242,9 @@ const Cardapio = () => {
       imagem_thumb: item.image_thumb_url || "",
       status: item.status,
       destaque: item.destaque,
+      custo_cmv: item.custo_cmv?.toString() || "",
+      tipo_item: item.tipo_item || "",
+      combina_com: (item.combina_com || []).join(", "),
     });
 
     // Carregar complementos
@@ -292,6 +306,9 @@ const Cardapio = () => {
       imagem_thumb: "",
       status: "ativo",
       destaque: false,
+      custo_cmv: "",
+      tipo_item: "",
+      combina_com: "",
     });
   };
 
@@ -391,6 +408,50 @@ const Cardapio = () => {
                   required
                 />
               </div>
+
+              <div className="rounded-md border p-4 space-y-4 bg-muted/30">
+                <div className="text-sm font-semibold">✨ Dados para sugestões IA (opcional)</div>
+                <div className="space-y-2">
+                  <Label htmlFor="custo_cmv">Custo (CMV) — R$</Label>
+                  <Input
+                    id="custo_cmv"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.custo_cmv}
+                    onChange={(e) => setFormData({ ...formData, custo_cmv: e.target.value })}
+                    placeholder="Ex: 3.50"
+                  />
+                  <p className="text-xs text-muted-foreground">Usado pela IA para priorizar itens de maior margem.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_item">Tipo do item</Label>
+                  <Select
+                    value={formData.tipo_item}
+                    onValueChange={(v) => setFormData({ ...formData, tipo_item: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="principal">Principal</SelectItem>
+                      <SelectItem value="acompanhamento">Acompanhamento</SelectItem>
+                      <SelectItem value="bebida">Bebida</SelectItem>
+                      <SelectItem value="sobremesa">Sobremesa</SelectItem>
+                      <SelectItem value="extra">Extra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="combina_com">Tags de combinação</Label>
+                  <Input
+                    id="combina_com"
+                    value={formData.combina_com}
+                    onChange={(e) => setFormData({ ...formData, combina_com: e.target.value })}
+                    placeholder="Ex: espetinho, carne, porcao"
+                  />
+                  <p className="text-xs text-muted-foreground">Separe por vírgula. Ex: farofa → "espetinho, carne".</p>
+                </div>
+              </div>
+
 
               <ImageUpload
                 currentImageUrl={formData.imagem}
