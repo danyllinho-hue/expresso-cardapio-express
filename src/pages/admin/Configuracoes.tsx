@@ -128,10 +128,10 @@ const Configuracoes = () => {
 
     setSaving(true);
     try {
-      const { uazapi_server_url, ...rest } = config;
+      // @ts-ignore - Temporary until types are updated
       const { error } = await supabase
         .from("restaurant_config")
-        .update(rest as any)
+        .update(config)
         .eq("id", config.id);
 
       if (error) throw error;
