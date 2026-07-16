@@ -128,10 +128,10 @@ const Configuracoes = () => {
 
     setSaving(true);
     try {
-      // @ts-ignore - Temporary until types are updated
+      // @ts-ignore
       const { error } = await supabase
         .from("restaurant_config")
-        .update(config)
+        .update(config as any)
         .eq("id", config.id);
 
       if (error) throw error;
