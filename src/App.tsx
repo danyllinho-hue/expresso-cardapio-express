@@ -18,7 +18,11 @@ import Configuracoes from "./pages/admin/Configuracoes";
 import ExportarDados from "./pages/admin/ExportarDados";
 import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
+import ClienteLogin from "./pages/ClienteLogin";
+import ClienteConta from "./pages/ClienteConta";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ClienteAuthProvider } from "./contexts/ClienteAuthContext";
+
 
 const queryClient = new QueryClient();
 
