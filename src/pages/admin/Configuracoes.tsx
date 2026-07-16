@@ -589,6 +589,38 @@ const Configuracoes = () => {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>✨ Sugestões Inteligentes (IA)</CardTitle>
+              <CardDescription>
+                Página automática entre carrinho e checkout que sugere itens personalizados por IA.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Ativar sugestões IA no checkout</Label>
+                <Switch
+                  checked={config.upsell_ai_enabled ?? true}
+                  onCheckedChange={(checked) =>
+                    setConfig({ ...config, upsell_ai_enabled: checked })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subtotal mínimo para exibir (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={config.upsell_min_subtotal ?? 15}
+                  onChange={(e) =>
+                    setConfig({ ...config, upsell_min_subtotal: parseFloat(e.target.value) || 0 })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">Abaixo desse valor a página é pulada.</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Button onClick={handleSaveConfig} disabled={saving} className="w-full">
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Alterações
