@@ -108,6 +108,9 @@ export const MenuHeader = ({ config, searchQuery, onSearchChange }: MenuHeaderPr
               <Button variant="ghost" size="sm" className="shadow-sm">Admin</Button>
             </Link>
           </div>
+        </div>
+
+
 
 
         {/* Endereço */}
