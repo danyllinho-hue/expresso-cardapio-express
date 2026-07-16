@@ -106,10 +106,14 @@ export const CartSheet = ({
   const total = subtotal + deliveryFee;
 
   const goToCheckout = () => {
-    // Só exibe o upsell se:
-    // 1. Estiver ativado no painel
-    // 2. Tiver uma chave de API configurada
-    // 3. O subtotal for maior ou igual ao mínimo definido
+    console.log("Tentando ir para checkout. Condições upsell:", {
+      upsellEnabled,
+      hasApiKey,
+      subtotal,
+      minSubtotal,
+      meetsThreshold: subtotal >= minSubtotal
+    });
+
     if (upsellEnabled && hasApiKey && subtotal >= minSubtotal) {
       setStep("upsell");
     } else {
