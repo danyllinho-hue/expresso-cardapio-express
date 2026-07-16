@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
     if (action === 'connect') {
       if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
       
+      console.log(`[whatsapp-sender] Connecting instance: ${instanceId}`)
       const url = `https://api.uazapi.com.br/instance/connect`
       const response = await fetch(url, {
         method: 'POST',
@@ -31,7 +32,10 @@ Deno.serve(async (req) => {
       })
       
       const result = await response.json()
+      console.log(`[whatsapp-sender] UAZAPI connect response status: ${response.status}`)
+      
       return new Response(JSON.stringify(result), {
+        status: response.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
