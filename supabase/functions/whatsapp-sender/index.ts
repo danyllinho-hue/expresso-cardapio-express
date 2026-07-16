@@ -2,26 +2,38 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0'
 
 Deno.serve(async (req) => {
+  console.log(`[whatsapp-sender] Request received: ${req.method} ${req.url}`);
+  
   // CORS Preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const body = await req.json()
+    const rawBody = await req.text();
+    console.log(`[whatsapp-sender] Raw body:`, rawBody);
+    
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (e) {
+      console.error(`[whatsapp-sender] JSON parse error:`, e);
+      throw new Error('Invalid JSON body');
+    }
+    
     const { order, newStatus, action, instanceId, token, serverUrl } = body
     
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_URL') || '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     )
 
     // Se a ação for conectar, gera o QR Code
     if (action === 'connect') {
       if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
       
-      const baseUrl = serverUrl?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
-      console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl}`)
+      const baseUrl = serverUrl?.trim()?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
+      console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl} with token: ${token ? 'present' : 'missing'}`)
       
       // Tentativa 1: Endpoint /instance/connect
       const connectUrl = `${baseUrl}/instance/connect`
@@ -44,7 +56,7 @@ Deno.serve(async (req) => {
         result = { error: 'Falha ao processar resposta da UAZAPI' }
       }
 
-      console.log(`[whatsapp-sender] UAZAPI connect response status: ${response.status}`, result)
+      console.log(`[whatsapp-sender] UAZAPI connect response status: ${response.status}`, JSON.stringify(result))
       
       // Se falhar, tenta o endpoint /instance/qrcode (alguns modelos usam esse)
       if (response.status !== 200) {
@@ -113,7 +125,7 @@ Deno.serve(async (req) => {
     })
 
     // Disparar via UAZAPI
-    const baseUrl = config.uazapi_server_url?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
+    const baseUrl = config.uazapi_server_url?.trim()?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
     const url = `${baseUrl}/message/sendText`
     const response = await fetch(url, {
       method: 'POST',
@@ -135,9 +147,9 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
-  } catch (error) {
-    console.error('[whatsapp-sender] Erro:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: any) {
+    console.error('[whatsapp-sender] Erro detalhado:', error.message, error.stack)
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
