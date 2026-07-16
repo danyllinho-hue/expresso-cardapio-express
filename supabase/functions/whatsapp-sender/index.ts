@@ -53,24 +53,43 @@ Deno.serve(async (req) => {
       
       let result;
       const responseText = await response.text();
-      console.log(`[whatsapp-sender] UAZAPI /instance/connect status: ${response.status}, text length: ${responseText.length}`);
+      console.log(`[whatsapp-sender] UAZAPI /instance/connect status: ${response.status}, text: ${responseText}`);
       
       try {
         result = JSON.parse(responseText);
       } catch (e) {
-        console.error(`[whatsapp-sender] JSON parse error:`, e, "Raw text:", responseText);
-        result = { error: 'Falha ao processar resposta JSON da UAZAPI', raw: responseText.slice(0, 100) }
+        console.error(`[whatsapp-sender] JSON parse error:`, e);
+        result = { error: 'Falha ao processar resposta JSON', raw: responseText }
       }
 
-      // Se for 200/201 e tiver base64 ou estiver conectado, retorna
-      if (response.ok && (result.base64 || result.status === "CONNECTED" || result.qrcode || result.state === "CONNECTED")) {
+      if (response.ok && (result.base64 || result.status === "CONNECTED" || result.qrcode || result.state === "CONNECTED" || result.base64Code)) {
         return new Response(JSON.stringify(result), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
+
+      // Tentativa 2: POST /instance/qrcode (Algumas versões usam POST)
+      console.log(`[whatsapp-sender] Trying POST /instance/qrcode...`)
+      const qrPostUrl = `${baseUrl}/instance/qrcode`
+      const qrPostResponse = await fetch(qrPostUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ instanceId })
+      })
+      const qrPostText = await qrPostResponse.text();
+      console.log(`[whatsapp-sender] UAZAPI POST /instance/qrcode status: ${qrPostResponse.status}, text: ${qrPostText}`);
+      if (qrPostResponse.ok) {
+        return new Response(qrPostText, {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
       
-      // Se falhar o POST, tenta o GET /instance/qrcode (fallback comum)
+      // Tentativa 3: GET /instance/qrcode
       console.log(`[whatsapp-sender] Fallback to GET /instance/qrcode...`)
       const qrUrl = `${baseUrl}/instance/qrcode?instanceId=${instanceId}`
       const qrResponse = await fetch(qrUrl, {
@@ -81,22 +100,16 @@ Deno.serve(async (req) => {
       })
       
       const qrText = await qrResponse.text();
-      console.log(`[whatsapp-sender] UAZAPI /instance/qrcode status: ${qrResponse.status}, text length: ${qrText.length}`);
+      console.log(`[whatsapp-sender] UAZAPI GET /instance/qrcode status: ${qrResponse.status}, text: ${qrText}`);
       
       if (qrResponse.ok) {
-        try {
-          const qrResult = JSON.parse(qrText);
-          return new Response(JSON.stringify(qrResult), {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          })
-        } catch (e) {
-          // Se não for JSON, pode ser a imagem direta? Algumas APIs retornam binário.
-          console.error(`[whatsapp-sender] QR JSON parse error:`, e, "Raw text:", qrText.slice(0, 100));
-        }
+        return new Response(qrText, {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
       }
       
-      // TENTATIVA 3: GET /instance/connect?instanceId=... (Algumas versões usam GET)
+      // Tentativa 4: GET /instance/connect
       console.log(`[whatsapp-sender] Fallback to GET /instance/connect...`)
       const getConnectUrl = `${baseUrl}/instance/connect?instanceId=${instanceId}`
       const getConnectResponse = await fetch(getConnectUrl, {
@@ -106,18 +119,20 @@ Deno.serve(async (req) => {
         }
       })
       const getConnectText = await getConnectResponse.text();
+      console.log(`[whatsapp-sender] UAZAPI GET /instance/connect status: ${getConnectResponse.status}, text: ${getConnectText}`);
       if (getConnectResponse.ok) {
-        try {
-          return new Response(getConnectText, {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          })
-        } catch (e) {}
+        return new Response(getConnectText, {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
       }
       
-      // Se nada funcionou, retorna o erro original do POST ou o do GET
-      return new Response(JSON.stringify(result), {
-        status: response.status === 200 ? 400 : response.status,
+      return new Response(JSON.stringify({ 
+        error: 'Não foi possível obter o QR Code após várias tentativas.',
+        lastResponse: responseText || qrText || getConnectText,
+        status: response.status
+      }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }

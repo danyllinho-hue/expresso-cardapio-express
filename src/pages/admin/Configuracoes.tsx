@@ -281,14 +281,15 @@ const Configuracoes = () => {
       if (error) throw error;
       const result = data;
       
-      if (result.base64 || result.qrcode || result.base64Code) {
-        setQrCode(result.base64 || result.qrcode || result.base64Code);
+      if (result.base64 || result.qrcode || result.base64Code || result.code) {
+        setQrCode(result.base64 || result.qrcode || result.base64Code || result.code);
         toast.success("QR Code gerado com sucesso!");
       } else if (result.status === "CONNECTED" || result.state === "CONNECTED") {
         toast.success("Instância já está conectada!");
       } else {
-        console.error("Erro UAZAPI:", result);
-        toast.error(result.message || "Erro ao gerar QR Code");
+        console.error("Erro UAZAPI (Resposta não esperada):", result);
+        const errorMsg = result.message || result.error || "A UAZAPI retornou um erro 401 ou não autorizado.";
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error("Erro ao gerar QR Code:", error);
