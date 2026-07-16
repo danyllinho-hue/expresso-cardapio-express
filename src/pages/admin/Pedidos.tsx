@@ -114,9 +114,9 @@ const Pedidos = () => {
       
       toast.success(`Pedido atualizado para: ${getStatusLabel(newStatus)}`);
       
-      // Abrir WhatsApp para notificar cliente
+      // Notificar cliente
       if (newStatus !== 'cancelado') {
-        notifyStatusChange(order, newStatus);
+        await notifyStatusChange(order, newStatus);
       }
       
       fetchOrders();

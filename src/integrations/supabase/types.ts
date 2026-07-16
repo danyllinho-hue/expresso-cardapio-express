@@ -545,10 +545,13 @@ export type Database = {
           telefone: string | null
           tempo_entrega: string | null
           twitter: string | null
+          uazapi_instance_id: string | null
+          uazapi_token: string | null
           upsell_ai_enabled: boolean
           upsell_min_subtotal: number
           valor_frete_gratis: number | null
           valor_pedido_minimo: number | null
+          whatsapp_api_type: string | null
           whatsapp_mensagem: string | null
           whatsapp_oficial: string
           youtube: string | null
@@ -584,10 +587,13 @@ export type Database = {
           telefone?: string | null
           tempo_entrega?: string | null
           twitter?: string | null
+          uazapi_instance_id?: string | null
+          uazapi_token?: string | null
           upsell_ai_enabled?: boolean
           upsell_min_subtotal?: number
           valor_frete_gratis?: number | null
           valor_pedido_minimo?: number | null
+          whatsapp_api_type?: string | null
           whatsapp_mensagem?: string | null
           whatsapp_oficial?: string
           youtube?: string | null
@@ -623,10 +629,13 @@ export type Database = {
           telefone?: string | null
           tempo_entrega?: string | null
           twitter?: string | null
+          uazapi_instance_id?: string | null
+          uazapi_token?: string | null
           upsell_ai_enabled?: boolean
           upsell_min_subtotal?: number
           valor_frete_gratis?: number | null
           valor_pedido_minimo?: number | null
+          whatsapp_api_type?: string | null
           whatsapp_mensagem?: string | null
           whatsapp_oficial?: string
           youtube?: string | null

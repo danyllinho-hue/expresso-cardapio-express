@@ -1,0 +1,84 @@
+import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0'
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const { order, newStatus } = await req.json()
+    if (!order || !newStatus) throw new Error('Dados do pedido ausentes')
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    // Buscar configurações da loja
+    const { data: config, error: configError } = await supabase
+      .from('restaurant_config')
+      .select('*')
+      .single()
+
+    if (configError || !config) throw new Error('Configurações da loja não encontradas')
+
+    // Se não for UAZAPI, não faz nada (o frontend abrirá o wa.me)
+    if (config.whatsapp_api_type !== 'uazapi') {
+      return new Response(JSON.stringify({ skipped: true, reason: 'Manual wa.me enabled' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (!config.uazapi_instance_id || !config.uazapi_token) {
+      throw new Error('Configurações da UAZAPI ausentes')
+    }
+
+    const customer = order.customers
+    if (!customer?.whatsapp) throw new Error('Número do cliente ausente')
+
+    const phone = customer.whatsapp.replace(/\D/g, "")
+    const trackingUrl = `${req.headers.get('origin') || ''}/pedido/${order.id}`
+    
+    const messages: Record<string, string> = {
+      aprovado: `🍢 *PEDIDO APROVADO!*\n\nOlá *${customer.nome}*! Seu pedido #${order.id.slice(0, 8)} foi aprovado!\n\n🕒 Previsão: 30-40 min\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      preparando: `👨‍🍳 *PEDIDO EM PRODUÇÃO!*\n\nOlá *${customer.nome}*! Seu pedido #${order.id.slice(0, 8)} está sendo preparado! 📦\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      entregando: `🚚 *PEDIDO A CAMINHO!*\n\nOlá *${customer.nome}*! Seu pedido #${order.id.slice(0, 8)} saiu para entrega!\n\nAguarde o entregador no endereço:\n📍 ${order.delivery_address}\n\nAcompanhe:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      entregue: `✅ *PEDIDO ENTREGUE!*\n\nObrigado por escolher o Expresso Espetaria! 🍢\n\nPedido #${order.id.slice(0, 8)} foi entregue com sucesso.\n\nEsperamos que tenha gostado! Até a próxima! 😊`,
+      cancelado: `❌ *PEDIDO CANCELADO*\n\nOlá *${customer.nome}*, infelizmente seu pedido #${order.id.slice(0, 8)} foi cancelado.\n\nPara mais informações, entre em contato:\n📞 ${config.whatsapp_oficial}\n\n_Expresso Espetaria_ 🍢`
+    }
+
+    const message = messages[newStatus]
+    if (!message) return new Response(JSON.stringify({ skipped: true, reason: 'Status without message' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+
+    // Disparar via UAZAPI
+    // URL base comum da UAZAPI: https://api.uazapi.com.br
+    const url = `https://api.uazapi.com.br/message/sendText`
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.uazapi_token}`
+      },
+      body: JSON.stringify({
+        instanceId: config.uazapi_instance_id,
+        number: `55${phone}`,
+        text: message
+      })
+    })
+
+    const result = await response.json()
+    console.log('[whatsapp-sender] UAZAPI Response:', result)
+
+    return new Response(JSON.stringify({ success: response.ok, result }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+
+  } catch (error) {
+    console.error('[whatsapp-sender] Erro:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+})
