@@ -274,6 +274,7 @@ const Index = () => {
         onRemoveItem={removeItem}
         onUpdateNotes={updateNotes}
         onClearCart={clearCart}
+        onAddItem={(item) => addToCart(item, 1, "")}
         isOpen={isOpen}
       />
 
