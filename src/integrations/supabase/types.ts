@@ -538,6 +538,7 @@ export type Database = {
           modo_atendimento: string | null
           nome_restaurante: string
           numero: string | null
+          openai_api_key: string | null
           razao_social: string | null
           site: string | null
           status_funcionamento: string | null
@@ -576,6 +577,7 @@ export type Database = {
           modo_atendimento?: string | null
           nome_restaurante?: string
           numero?: string | null
+          openai_api_key?: string | null
           razao_social?: string | null
           site?: string | null
           status_funcionamento?: string | null
@@ -614,6 +616,7 @@ export type Database = {
           modo_atendimento?: string | null
           nome_restaurante?: string
           numero?: string | null
+          openai_api_key?: string | null
           razao_social?: string | null
           site?: string | null
           status_funcionamento?: string | null
