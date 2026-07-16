@@ -50,6 +50,9 @@ interface RestaurantConfig {
   status_funcionamento: string;
   modo_atendimento: string;
   logo_url?: string;
+  upsell_ai_enabled?: boolean;
+  upsell_min_subtotal?: number;
+  openai_api_key?: string;
 }
 
 const Index = () => {
@@ -72,7 +75,7 @@ const Index = () => {
       // Load config from public view (no auth required)
       const { data: configData, error: configError } = await supabase
         .from("public_restaurant_info")
-        .select("*")
+        .select("nome_restaurante, endereco, tempo_entrega, status_funcionamento, modo_atendimento, logo_url")
         .maybeSingle();
       
       // Ignorar erro se for apenas "sem dados"

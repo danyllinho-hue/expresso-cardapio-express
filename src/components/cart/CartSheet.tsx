@@ -66,17 +66,29 @@ export const CartSheet = ({
   const [hasApiKey, setHasApiKey] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("restaurant_config")
-      .select("upsell_ai_enabled, upsell_min_subtotal, openai_api_key")
-      .maybeSingle()
-      .then(({ data }) => {
+    const fetchConfig = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("restaurant_config")
+          .select("upsell_ai_enabled, upsell_min_subtotal, openai_api_key")
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error fetching restaurant config for upsell:", error);
+          return;
+        }
+
         if (data) {
           setUpsellEnabled(data.upsell_ai_enabled ?? false);
           setMinSubtotal(data.upsell_min_subtotal ?? 15);
-          setHasApiKey(!!data.openai_api_key);
+          setHasApiKey(!!data.openai_api_key && data.openai_api_key.trim() !== "");
         }
-      });
+      } catch (err) {
+        console.error("Exception in upsell config check:", err);
+      }
+    };
+    
+    fetchConfig();
   }, []);
 
   const subtotal = cart.reduce((sum, c) => {
@@ -94,10 +106,6 @@ export const CartSheet = ({
   const total = subtotal + deliveryFee;
 
   const goToCheckout = () => {
-    // Só exibe o upsell se:
-    // 1. Estiver ativado no painel
-    // 2. Tiver uma chave de API configurada
-    // 3. O subtotal for maior ou igual ao mínimo definido
     if (upsellEnabled && hasApiKey && subtotal >= minSubtotal) {
       setStep("upsell");
     } else {
