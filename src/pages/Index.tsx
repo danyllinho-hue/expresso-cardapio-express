@@ -50,6 +50,9 @@ interface RestaurantConfig {
   status_funcionamento: string;
   modo_atendimento: string;
   logo_url?: string;
+  upsell_ai_enabled?: boolean;
+  upsell_min_subtotal?: number;
+  openai_api_key?: string;
 }
 
 const Index = () => {
