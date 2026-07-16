@@ -93,7 +93,10 @@ const Configuracoes = () => {
         .single();
 
       if (error) throw error;
-      setConfig(data);
+      setConfig({
+        ...data,
+        whatsapp_api_type: (data.whatsapp_api_type as 'wa_me' | 'uazapi') || 'wa_me'
+      });
     } catch (error) {
       console.error("Erro ao carregar configurações:", error);
       toast.error("Erro ao carregar configurações");
