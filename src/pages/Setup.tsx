@@ -73,39 +73,18 @@ const Setup = () => {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erro ao criar usuário");
 
-      // Atribuir role de admin
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: "admin",
+      // Garantir sessão ativa (signUp pode não logar automaticamente se confirmação de email estiver ativa)
+      if (!authData.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: senha,
         });
+        if (signInError) throw signInError;
+      }
 
-      if (roleError) throw roleError;
-
-      // Dar todas as permissões
-      const allPermissions = [
-        'view_dashboard',
-        'view_financeiro',
-        'view_relatorios',
-        'manage_categories',
-        'manage_menu_items',
-        'manage_customers',
-        'manage_orders',
-        'manage_users',
-        'manage_config',
-      ];
-
-      const { error: permError } = await supabase
-        .from("user_permissions")
-        .insert(
-          allPermissions.map(permission => ({
-            user_id: authData.user.id,
-            permission,
-          }))
-        );
-
-      if (permError) throw permError;
+      // Bootstrap atômico do primeiro admin (função SECURITY DEFINER)
+      const { error: bootstrapError } = await supabase.rpc("bootstrap_first_admin");
+      if (bootstrapError) throw bootstrapError;
 
       toast.success("Administrador criado com sucesso!");
       navigate("/login");
