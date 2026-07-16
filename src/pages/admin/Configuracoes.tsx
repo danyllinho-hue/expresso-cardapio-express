@@ -129,7 +129,7 @@ const Configuracoes = () => {
     setSaving(true);
     try {
       // Remove campos que não existem na tabela do banco para evitar erros de tipo
-      const { uazapi_server_url, ...dataToSave } = config;
+      const { uazapi_server_url: _, ...dataToSave } = config;
       
       const { error } = await supabase
         .from("restaurant_config")
@@ -572,7 +572,7 @@ const Configuracoes = () => {
                         <div className="space-y-2">
                           <Label>UAZAPI Server URL</Label>
                           <Input
-                            value={config.uazapi_server_url || ""}
+                            value={config.uazapi_server_url || "https://expressoespetaria.uazapi.com"}
                             onChange={(e) => setConfig({ ...config, uazapi_server_url: e.target.value })}
                             placeholder="Ex: https://api.uazapi.com.br ou https://sua-url.uazapi.com"
                           />
@@ -583,7 +583,7 @@ const Configuracoes = () => {
                           <div className="space-y-2">
                             <Label>UAZAPI Instance ID</Label>
                             <Input
-                              value={config.uazapi_instance_id || ""}
+                              value={config.uazapi_instance_id || "CardapioExpresso_ExpressoEspetaria"}
                               onChange={(e) => setConfig({ ...config, uazapi_instance_id: e.target.value })}
                               placeholder="Ex: CardapioExpresso_..."
                             />
@@ -592,7 +592,7 @@ const Configuracoes = () => {
                             <Label>UAZAPI Token</Label>
                             <Input
                               type="password"
-                              value={config.uazapi_token || ""}
+                              value={config.uazapi_token || "e6d532d5-4d1c-4031-806e-aaf13ae3f689"}
                               onChange={(e) => setConfig({ ...config, uazapi_token: e.target.value })}
                               placeholder="Seu Instance Token"
                             />
