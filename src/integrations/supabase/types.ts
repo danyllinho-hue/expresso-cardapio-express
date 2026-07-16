@@ -706,6 +706,7 @@ export type Database = {
       }
     }
     Functions: {
+      bootstrap_first_admin: { Args: never; Returns: undefined }
       has_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean
