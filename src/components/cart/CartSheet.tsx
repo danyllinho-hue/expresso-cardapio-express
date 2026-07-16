@@ -81,7 +81,7 @@ export const CartSheet = ({
         if (data) {
           setUpsellEnabled(data.upsell_ai_enabled ?? false);
           setMinSubtotal(data.upsell_min_subtotal ?? 15);
-          setHasApiKey(!!data.openai_api_key);
+          setHasApiKey(!!data.openai_api_key && data.openai_api_key.trim() !== "");
         }
       } catch (err) {
         console.error("Exception in upsell config check:", err);
