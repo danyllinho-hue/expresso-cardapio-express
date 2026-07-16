@@ -242,6 +242,9 @@ const Cardapio = () => {
       imagem_thumb: item.image_thumb_url || "",
       status: item.status,
       destaque: item.destaque,
+      custo_cmv: item.custo_cmv?.toString() || "",
+      tipo_item: item.tipo_item || "",
+      combina_com: (item.combina_com || []).join(", "),
     });
 
     // Carregar complementos
