@@ -599,7 +599,10 @@ const Configuracoes = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Ativar sugestões IA no checkout</Label>
+                <div className="space-y-0.5">
+                  <Label>Ativar sugestões IA no checkout</Label>
+                  <p className="text-xs text-muted-foreground">Requer chave da OpenAI configurada abaixo.</p>
+                </div>
                 <Switch
                   checked={config.upsell_ai_enabled ?? true}
                   onCheckedChange={(checked) =>
