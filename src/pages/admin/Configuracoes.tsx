@@ -42,6 +42,8 @@ interface RestaurantConfig {
   modo_atendimento: string;
   tempo_entrega: string;
   aceitar_loja_fechada?: boolean;
+  upsell_ai_enabled?: boolean;
+  upsell_min_subtotal?: number;
   horario_funcionamento?: any;
   logo_url?: string;
   cor_primaria?: string;
