@@ -32,14 +32,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ClienteAuthProvider>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/setup" element={<Setup />} />
+          <Route path="/cliente/login" element={<ClienteLogin />} />
+          <Route path="/cliente/conta" element={<ClienteConta />} />
           <Route path="/pedido/:orderId" element={<OrderTracking />} />
           <Route path="/admin" element={<Admin />}>
             <Route index element={<Dashboard />} />
             <Route 
+
               path="pedidos" 
               element={
                 <ProtectedRoute permission="manage_orders">
