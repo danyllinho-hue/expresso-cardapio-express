@@ -281,8 +281,8 @@ const Configuracoes = () => {
       if (error) throw error;
       const result = data;
       
-      if (result.base64 || result.qrcode) {
-        setQrCode(result.base64 || result.qrcode);
+      if (result.base64 || result.qrcode || result.base64Code) {
+        setQrCode(result.base64 || result.qrcode || result.base64Code);
         toast.success("QR Code gerado com sucesso!");
       } else if (result.status === "CONNECTED" || result.state === "CONNECTED") {
         toast.success("Instância já está conectada!");

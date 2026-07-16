@@ -53,16 +53,17 @@ Deno.serve(async (req) => {
       
       let result;
       const responseText = await response.text();
-      console.log(`[whatsapp-sender] UAZAPI /instance/connect status: ${response.status}, text: ${responseText}`);
+      console.log(`[whatsapp-sender] UAZAPI /instance/connect status: ${response.status}, text length: ${responseText.length}`);
       
       try {
         result = JSON.parse(responseText);
       } catch (e) {
-        result = { error: 'Falha ao processar resposta JSON da UAZAPI', raw: responseText }
+        console.error(`[whatsapp-sender] JSON parse error:`, e, "Raw text:", responseText);
+        result = { error: 'Falha ao processar resposta JSON da UAZAPI', raw: responseText.slice(0, 100) }
       }
 
       // Se for 200/201 e tiver base64 ou estiver conectado, retorna
-      if (response.ok && (result.base64 || result.status === "CONNECTED" || result.qrcode)) {
+      if (response.ok && (result.base64 || result.status === "CONNECTED" || result.qrcode || result.state === "CONNECTED")) {
         return new Response(JSON.stringify(result), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -80,7 +81,7 @@ Deno.serve(async (req) => {
       })
       
       const qrText = await qrResponse.text();
-      console.log(`[whatsapp-sender] UAZAPI /instance/qrcode status: ${qrResponse.status}, text: ${qrText}`);
+      console.log(`[whatsapp-sender] UAZAPI /instance/qrcode status: ${qrResponse.status}, text length: ${qrText.length}`);
       
       if (qrResponse.ok) {
         try {
@@ -91,8 +92,27 @@ Deno.serve(async (req) => {
           })
         } catch (e) {
           // Se não for JSON, pode ser a imagem direta? Algumas APIs retornam binário.
-          // Mas UAZAPI geralmente retorna JSON com base64.
+          console.error(`[whatsapp-sender] QR JSON parse error:`, e, "Raw text:", qrText.slice(0, 100));
         }
+      }
+      
+      // TENTATIVA 3: GET /instance/connect?instanceId=... (Algumas versões usam GET)
+      console.log(`[whatsapp-sender] Fallback to GET /instance/connect...`)
+      const getConnectUrl = `${baseUrl}/instance/connect?instanceId=${instanceId}`
+      const getConnectResponse = await fetch(getConnectUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const getConnectText = await getConnectResponse.text();
+      if (getConnectResponse.ok) {
+        try {
+          return new Response(getConnectText, {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        } catch (e) {}
       }
       
       // Se nada funcionou, retorna o erro original do POST ou o do GET
