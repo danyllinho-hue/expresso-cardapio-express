@@ -128,9 +128,10 @@ const Configuracoes = () => {
 
     setSaving(true);
     try {
+      const { uazapi_server_url, ...rest } = config;
       const { error } = await supabase
         .from("restaurant_config")
-        .update(config)
+        .update(rest as any)
         .eq("id", config.id);
 
       if (error) throw error;
@@ -166,7 +167,7 @@ const Configuracoes = () => {
       // Atualizar no banco de dados imediatamente
       const { error: updateError } = await supabase
         .from("restaurant_config")
-        .update({ logo_url: publicUrl })
+        .update({ logo_url: publicUrl } as any)
         .eq("id", config.id);
 
       if (updateError) throw updateError;
