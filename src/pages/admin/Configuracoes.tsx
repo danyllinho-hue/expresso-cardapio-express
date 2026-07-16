@@ -577,6 +577,7 @@ const Configuracoes = () => {
                             placeholder="Ex: https://api.uazapi.com.br ou https://sua-url.uazapi.com"
                           />
                           <p className="text-[10px] text-muted-foreground">URL base fornecida pela UAZAPI (ex: Server URL no seu painel).</p>
+                          <p className="text-[10px] text-amber-600 font-medium">Nota: Este campo é usado apenas para a conexão atual e não é salvo permanentemente no banco ainda.</p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
