@@ -256,28 +256,50 @@ _Sistema Expresso Espetaria_ 🍢`;
     window.open(whatsappUrl, "_blank");
   };
 
-  const notifyStatusChange = (order: Order, newStatus: string) => {
+  const notifyStatusChange = async (order: Order, newStatus: string) => {
     if (!order.customers) return;
     
-    const phone = formatWhatsApp(order.customers.whatsapp);
-    const trackingUrl = `${window.location.origin}/pedido/${order.id}`;
-    
-    const messages: Record<string, string> = {
-      aprovado: `🍢 *PEDIDO APROVADO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} foi aprovado!\n\n🕒 Previsão: 30-40 min\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+    try {
+      // 1. Verificar se deve usar UAZAPI (Backend) ou wa.me (Frontend)
+      const { data: config } = await supabase
+        .from('restaurant_config')
+        .select('whatsapp_api_type')
+        .single();
+
+      if (config?.whatsapp_api_type === 'uazapi') {
+        // Envio automático via Edge Function
+        const { error } = await supabase.functions.invoke('whatsapp-sender', {
+          body: { order, newStatus }
+        });
+        
+        if (error) {
+          console.error("Erro ao enviar via UAZAPI:", error);
+          toast.error("Erro no envio automático. Tente o botão WhatsApp manual.");
+        } else {
+          toast.success("Notificação enviada via UAZAPI!");
+        }
+        return;
+      }
+
+      // 2. Fallback para wa.me (Manual)
+      const phone = formatWhatsApp(order.customers.whatsapp);
+      const trackingUrl = `${window.location.origin}/pedido/${order.id}`;
       
-      preparando: `👨‍🍳 *PEDIDO EM PRODUÇÃO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} está sendo preparado! 📦\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+      const messages: Record<string, string> = {
+        aprovado: `🍢 *PEDIDO APROVADO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} foi aprovado!\n\n🕒 Previsão: 30-40 min\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+        preparando: `👨‍🍳 *PEDIDO EM PRODUÇÃO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} está sendo preparado! 📦\n\nAcompanhe em tempo real:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+        entregando: `🚚 *PEDIDO A CAMINHO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} saiu para entrega!\n\nAguarde o entregador no endereço:\n📍 ${order.delivery_address}\n\nAcompanhe:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
+        entregue: `✅ *PEDIDO ENTREGUE!*\n\nObrigado por escolher o Expresso Espetaria! 🍢\n\nPedido #${order.id.slice(0, 8)} foi entregue com sucesso.\n\nEsperamos que tenha gostado! Até a próxima! 😊`,
+        cancelado: `❌ *PEDIDO CANCELADO*\n\nOlá *${order.customers.nome}*, infelizmente seu pedido #${order.id.slice(0, 8)} foi cancelado.\n\nPara mais informações, entre em contato:\n📞 (75) 99231-5312\n\n_Expresso Espetaria_ 🍢`
+      };
       
-      entregando: `🚚 *PEDIDO A CAMINHO!*\n\nOlá *${order.customers.nome}*! Seu pedido #${order.id.slice(0, 8)} saiu para entrega!\n\nAguarde o entregador no endereço:\n📍 ${order.delivery_address}\n\nAcompanhe:\n${trackingUrl}\n\n_Expresso Espetaria_ 🍢`,
-      
-      entregue: `✅ *PEDIDO ENTREGUE!*\n\nObrigado por escolher o Expresso Espetaria! 🍢\n\nPedido #${order.id.slice(0, 8)} foi entregue com sucesso.\n\nEsperamos que tenha gostado! Até a próxima! 😊`,
-      
-      cancelado: `❌ *PEDIDO CANCELADO*\n\nOlá *${order.customers.nome}*, infelizmente seu pedido #${order.id.slice(0, 8)} foi cancelado.\n\nPara mais informações, entre em contato:\n📞 (75) 99231-5312\n\n_Expresso Espetaria_ 🍢`
-    };
-    
-    const message = messages[newStatus];
-    if (message) {
-      const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
+      const message = messages[newStatus];
+      if (message) {
+        const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, "_blank");
+      }
+    } catch (err) {
+      console.error("Erro na notificação:", err);
     }
   };
 
