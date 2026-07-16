@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Gift } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
+import { useClienteAuth } from "@/contexts/ClienteAuthContext";
+import { Link } from "react-router-dom";
+
 
 interface MenuItem {
   id: string;
@@ -49,6 +52,7 @@ const checkoutSchema = z.object({
 });
 
 export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormProps) => {
+  const { user } = useClienteAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nome: "",
@@ -57,6 +61,35 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
     data_nascimento: "",
     notes: "",
   });
+
+  // Prefill from logged-in customer record
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("nome, whatsapp, endereco, data_nascimento")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setFormData((f) => ({
+          ...f,
+          nome: data.nome ?? f.nome,
+          whatsapp: data.whatsapp ?? f.whatsapp,
+          endereco: data.endereco ?? f.endereco,
+          data_nascimento: data.data_nascimento ?? f.data_nascimento,
+        }));
+      } else {
+        const meta = user.user_metadata ?? {};
+        setFormData((f) => ({
+          ...f,
+          nome: f.nome || (meta.nome as string) || (meta.full_name as string) || "",
+          whatsapp: f.whatsapp || (meta.whatsapp as string) || "",
+        }));
+      }
+    })();
+  }, [user]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
