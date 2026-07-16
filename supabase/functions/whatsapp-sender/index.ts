@@ -28,7 +28,10 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ instanceId })
+        body: JSON.stringify({ 
+          instanceId: instanceId,
+          type: "WEB"
+        })
       })
       
       const result = await response.json()
