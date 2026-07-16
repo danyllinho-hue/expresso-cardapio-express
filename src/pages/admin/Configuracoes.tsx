@@ -52,6 +52,7 @@ interface RestaurantConfig {
   logo_url?: string;
   cor_primaria?: string;
   cor_secundaria?: string;
+  uazapi_server_url?: string;
 }
 
 interface Neighborhood {
@@ -127,12 +128,18 @@ const Configuracoes = () => {
 
     setSaving(true);
     try {
+      // Remove campos que não existem na tabela do banco para evitar erros de tipo
+      const { uazapi_server_url, ...dataToSave } = config;
+      
       const { error } = await supabase
         .from("restaurant_config")
-        .update(config)
+        .update(dataToSave)
         .eq("id", config.id);
 
       if (error) throw error;
+      
+      // Se tiver server url, salvamos separadamente ou ignoramos por enquanto se a coluna não foi criada
+      // Mas para não quebrar o fluxo do usuário, apenas mostramos sucesso
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -266,7 +273,8 @@ const Configuracoes = () => {
         body: { 
           action: 'connect',
           instanceId: config.uazapi_instance_id,
-          token: config.uazapi_token
+          token: config.uazapi_token,
+          serverUrl: config.uazapi_server_url
         }
       });
 
@@ -560,23 +568,35 @@ const Configuracoes = () => {
                     </div>
 
                     {config.whatsapp_api_type === 'uazapi' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="grid grid-cols-1 gap-4 p-4 border rounded-lg bg-muted/30">
                         <div className="space-y-2">
-                          <Label>UAZAPI Instance ID</Label>
+                          <Label>UAZAPI Server URL</Label>
                           <Input
-                            value={config.uazapi_instance_id || ""}
-                            onChange={(e) => setConfig({ ...config, uazapi_instance_id: e.target.value })}
-                            placeholder="Ex: 3B82F6..."
+                            value={config.uazapi_server_url || ""}
+                            onChange={(e) => setConfig({ ...config, uazapi_server_url: e.target.value })}
+                            placeholder="Ex: https://api.uazapi.com.br ou https://sua-url.uazapi.com"
                           />
+                          <p className="text-[10px] text-muted-foreground">URL base fornecida pela UAZAPI (ex: Server URL no seu painel).</p>
+                          <p className="text-[10px] text-amber-600 font-medium">Nota: Este campo é usado apenas para a conexão atual e não é salvo permanentemente no banco ainda.</p>
                         </div>
-                        <div className="space-y-2">
-                          <Label>UAZAPI Token</Label>
-                          <Input
-                            type="password"
-                            value={config.uazapi_token || ""}
-                            onChange={(e) => setConfig({ ...config, uazapi_token: e.target.value })}
-                            placeholder="Seu token da UAZAPI"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>UAZAPI Instance ID</Label>
+                            <Input
+                              value={config.uazapi_instance_id || ""}
+                              onChange={(e) => setConfig({ ...config, uazapi_instance_id: e.target.value })}
+                              placeholder="Ex: CardapioExpresso_..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>UAZAPI Token</Label>
+                            <Input
+                              type="password"
+                              value={config.uazapi_token || ""}
+                              onChange={(e) => setConfig({ ...config, uazapi_token: e.target.value })}
+                              placeholder="Seu Instance Token"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}

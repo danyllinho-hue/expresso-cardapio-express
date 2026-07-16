@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json()
-    const { order, newStatus, action, instanceId, token } = body
+    const { order, newStatus, action, instanceId, token, serverUrl } = body
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -20,10 +20,11 @@ Deno.serve(async (req) => {
     if (action === 'connect') {
       if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
       
-      console.log(`[whatsapp-sender] Connecting instance: ${instanceId}`)
+      const baseUrl = serverUrl?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
+      console.log(`[whatsapp-sender] Connecting instance: ${instanceId} using server: ${baseUrl}`)
       
       // Tentativa 1: Endpoint /instance/connect
-      const connectUrl = `https://api.uazapi.com.br/instance/connect`
+      const connectUrl = `${baseUrl}/instance/connect`
       const response = await fetch(connectUrl, {
         method: 'POST',
         headers: {
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
       // Se falhar, tenta o endpoint /instance/qrcode (alguns modelos usam esse)
       if (response.status !== 200) {
         console.log(`[whatsapp-sender] Attempting alternative /instance/qrcode endpoint...`)
-        const qrUrl = `https://api.uazapi.com.br/instance/qrcode?instanceId=${instanceId}`
+        const qrUrl = `${baseUrl}/instance/qrcode?instanceId=${instanceId}`
         const qrResponse = await fetch(qrUrl, {
           method: 'GET',
           headers: {
@@ -112,7 +113,8 @@ Deno.serve(async (req) => {
     })
 
     // Disparar via UAZAPI
-    const url = `https://api.uazapi.com.br/message/sendText`
+    const baseUrl = config.uazapi_server_url?.replace(/\/$/, '') || 'https://api.uazapi.com.br'
+    const url = `${baseUrl}/message/sendText`
     const response = await fetch(url, {
       method: 'POST',
       headers: {
