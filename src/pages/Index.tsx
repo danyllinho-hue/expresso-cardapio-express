@@ -75,7 +75,7 @@ const Index = () => {
       // Load config from public view (no auth required)
       const { data: configData, error: configError } = await supabase
         .from("public_restaurant_info")
-        .select("nome_restaurante, endereco, tempo_entrega, status_funcionamento, modo_atendimento, logo_url, upsell_ai_enabled, upsell_min_subtotal, openai_api_key")
+        .select("nome_restaurante, endereco, tempo_entrega, status_funcionamento, modo_atendimento, logo_url")
         .maybeSingle();
       
       // Ignorar erro se for apenas "sem dados"
