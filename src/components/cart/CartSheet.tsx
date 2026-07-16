@@ -106,14 +106,6 @@ export const CartSheet = ({
   const total = subtotal + deliveryFee;
 
   const goToCheckout = () => {
-    console.log("Tentando ir para checkout. Condições upsell:", {
-      upsellEnabled,
-      hasApiKey,
-      subtotal,
-      minSubtotal,
-      meetsThreshold: subtotal >= minSubtotal
-    });
-
     if (upsellEnabled && hasApiKey && subtotal >= minSubtotal) {
       setStep("upsell");
     } else {
