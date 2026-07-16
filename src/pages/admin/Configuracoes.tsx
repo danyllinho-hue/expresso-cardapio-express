@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, QrCode } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface RestaurantConfig {
@@ -79,6 +79,9 @@ const Configuracoes = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [fetchingQr, setFetchingQr] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -248,6 +251,46 @@ const Configuracoes = () => {
         },
       },
     });
+  };
+
+  const handleGenerateQr = async () => {
+    if (!config?.uazapi_instance_id || !config?.uazapi_token) {
+      toast.error("Preencha o Instance ID e o Token primeiro e salve as alterações.");
+      return;
+    }
+
+    setFetchingQr(true);
+    try {
+      // UAZAPI endpoint para gerar QR Code
+      const url = `https://api.uazapi.com.br/instance/connect`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.uazapi_token}`
+        },
+        body: JSON.stringify({
+          instanceId: config.uazapi_instance_id
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.base64) {
+        setQrCode(result.base64);
+        toast.success("QR Code gerado com sucesso!");
+      } else if (result.status === "CONNECTED") {
+        toast.success("Instância já está conectada!");
+      } else {
+        console.error("Erro UAZAPI:", result);
+        toast.error(result.message || "Erro ao gerar QR Code");
+      }
+    } catch (error) {
+      console.error("Erro ao gerar QR Code:", error);
+      toast.error("Erro ao conectar com a UAZAPI");
+    } finally {
+      setFetchingQr(false);
+    }
   };
 
   if (loading) {
@@ -538,6 +581,45 @@ const Configuracoes = () => {
                             placeholder="Seu token da UAZAPI"
                           />
                         </div>
+                      </div>
+                    )}
+
+                    {config.whatsapp_api_type === 'uazapi' && (
+                      <div className="flex flex-col items-center gap-4 p-4 border rounded-lg bg-muted/10">
+                        <div className="flex flex-col items-center gap-2 text-center">
+                          <h4 className="font-semibold text-sm">Conectar WhatsApp</h4>
+                          <p className="text-xs text-muted-foreground max-w-xs">
+                            Clique no botão abaixo para gerar o QR Code e escanear com seu WhatsApp para conectar a instância.
+                          </p>
+                        </div>
+                        
+                        {qrCode ? (
+                          <div className="bg-white p-4 rounded-lg shadow-sm">
+                            <img src={qrCode} alt="WhatsApp QR Code" className="w-48 h-48" />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full mt-4"
+                              onClick={() => setQrCode(null)}
+                            >
+                              Fechar QR Code
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button 
+                            variant="secondary" 
+                            onClick={handleGenerateQr}
+                            disabled={fetchingQr}
+                            className="w-full md:w-auto"
+                          >
+                            {fetchingQr ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <QrCode className="mr-2 h-4 w-4" />
+                            )}
+                            GERAR QR CODE
+                          </Button>
+                        )}
                       </div>
                     )}
 
