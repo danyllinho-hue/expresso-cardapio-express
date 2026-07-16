@@ -409,6 +409,50 @@ const Cardapio = () => {
                 />
               </div>
 
+              <div className="rounded-md border p-4 space-y-4 bg-muted/30">
+                <div className="text-sm font-semibold">✨ Dados para sugestões IA (opcional)</div>
+                <div className="space-y-2">
+                  <Label htmlFor="custo_cmv">Custo (CMV) — R$</Label>
+                  <Input
+                    id="custo_cmv"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.custo_cmv}
+                    onChange={(e) => setFormData({ ...formData, custo_cmv: e.target.value })}
+                    placeholder="Ex: 3.50"
+                  />
+                  <p className="text-xs text-muted-foreground">Usado pela IA para priorizar itens de maior margem.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_item">Tipo do item</Label>
+                  <Select
+                    value={formData.tipo_item}
+                    onValueChange={(v) => setFormData({ ...formData, tipo_item: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="principal">Principal</SelectItem>
+                      <SelectItem value="acompanhamento">Acompanhamento</SelectItem>
+                      <SelectItem value="bebida">Bebida</SelectItem>
+                      <SelectItem value="sobremesa">Sobremesa</SelectItem>
+                      <SelectItem value="extra">Extra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="combina_com">Tags de combinação</Label>
+                  <Input
+                    id="combina_com"
+                    value={formData.combina_com}
+                    onChange={(e) => setFormData({ ...formData, combina_com: e.target.value })}
+                    placeholder="Ex: espetinho, carne, porcao"
+                  />
+                  <p className="text-xs text-muted-foreground">Separe por vírgula. Ex: farofa → "espetinho, carne".</p>
+                </div>
+              </div>
+
+
               <ImageUpload
                 currentImageUrl={formData.imagem}
                 onImageUploaded={handleImageUploaded}
