@@ -176,8 +176,6 @@ const Index = () => {
     return sum + (itemTotal * c.quantity);
   }, 0);
   const isOpen = config?.status_funcionamento === "aberto";
-  console.log("Config carregada:", config);
-  console.log("Upsell status:", { upsellEnabled: config?.upsell_ai_enabled, hasKey: !!config?.openai_api_key, subtotal: cartTotal });
   const highlightedItems = menuItems.filter(item => item.destaque);
 
   return (
