@@ -65,6 +65,9 @@ const Cardapio = () => {
     imagem_thumb: "",
     status: "ativo",
     destaque: false,
+    custo_cmv: "",
+    tipo_item: "",
+    combina_com: "",
   });
 
   useEffect(() => {
