@@ -141,6 +141,11 @@ const Cardapio = () => {
       image_thumb_url: formData.imagem_thumb || null,
       status: formData.status,
       destaque: formData.destaque,
+      custo_cmv: formData.custo_cmv ? parseFloat(formData.custo_cmv) : null,
+      tipo_item: formData.tipo_item || null,
+      combina_com: formData.combina_com
+        ? formData.combina_com.split(",").map(s => s.trim()).filter(Boolean)
+        : [],
     };
 
     let itemId: string;
