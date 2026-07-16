@@ -1,163 +1,104 @@
 
-# Cadastro opcional de cliente + Fidelidade + Cupons
+# Upsell inteligente com IA entre carrinho e checkout
 
-## Princípio central
+## O que vai ser construído
 
-Pedido **sem cadastro continua funcionando exatamente como hoje** (zero fricção no checkout). O cadastro é uma escolha do cliente — quem quiser cashback/pontos/cupons cria conta; quem quiser só pedir, pede.
+Uma nova etapa **"✨ Que tal adicionar?"** entre o carrinho e o formulário de checkout. A cada vez que o cliente clica em "Continuar para Pagamento", uma IA analisa o carrinho atual e gera de 2 a 4 sugestões personalizadas (com foto, nome, preço e uma frase curta explicando *por que* combina). O cliente pode adicionar com 1 clique ou pular.
 
-O programa de fidelidade tem 4 modos e **a empresa (admin) escolhe qual está ativo**:
-- **Nenhum** — só cupons, sem cashback/pontos.
-- **Cashback %** — cliente ganha X% do pedido em saldo, usa em pedidos futuros.
-- **Pontos por real** — 1 ponto por R$ Y gasto, X pontos = desconto/brinde.
-- **Cartão fidelidade** — a cada N pedidos, 1 item grátis (do cardápio, escolhido pelo admin).
+A IA usa **CMV** (para priorizar itens de maior margem) e **tags de combinação** (para saber que farofa/aipim/tropeiro combinam com espetinho, refri combina com porção, etc.) cadastradas pelo admin no cardápio.
 
-Cupons são independentes do modo — sempre funcionam.
+## Minha sugestão para "quantidade e regras" (você não escolheu)
 
----
+**Regra híbrida — o melhor dos 3 mundos:**
+- IA retorna **2 a 4 sugestões** (ela decide conforme o carrinho: carrinho pequeno = menos, carrinho grande = mais).
+- **Nunca sugere item já no carrinho**.
+- **Prioriza margem alta** (CMV baixo) *em caso de empate* na complementaridade.
+- **Tenta cobrir categorias faltantes** (se o carrinho não tem bebida, quase sempre sugere uma).
+- Se o subtotal for muito baixo (< R$ 15), pula a página inteira (upsell tem retorno ruim em ticket pequeno) e vai direto pro checkout.
 
-## Fluxo do cliente
+Se você preferir outra regra, é só ajustar antes de aprovar.
 
-### Quem NÃO quer cadastro
-- Adiciona itens → checkout → digita nome/whatsapp/endereço → pedido criado. Igual hoje.
-- No fim do checkout aparece uma faixa discreta: *"Quer ganhar 5% de cashback no próximo pedido? Criar conta em 30 segundos"* — botão opcional.
+## Etapas de implementação
 
-### Quem QUER cadastro
-- Entrar/Cadastrar no header do cardápio → tela `/cliente/login`.
-- Cadastro pede: nome, email, senha, whatsapp, data de nascimento (opcional mas necessária para cupom de aniversário). Endereço fica pro checkout.
-- Ou entra com Google (nome + email vindos do Google; whatsapp e nascimento pedidos depois).
-- Após login, header mostra "Olá, [Nome]" + link "Minha conta".
+### 1. Alterações no banco de dados
 
-### Página "Minha conta" (`/cliente/conta`)
-Abas:
-- **Perfil**: nome, whatsapp, endereços salvos, data de nascimento.
-- **Recompensas**: mostra o modo ativo (saldo cashback / pontos acumulados / N de M pedidos no cartão).
-- **Meus cupons**: cupons disponíveis (código, desconto, validade).
-- **Meus pedidos**: histórico com status e link de tracking.
+**Adicionar em `menu_items`:**
+- `custo_cmv` (NUMERIC, opcional) — custo do item para cálculo de margem.
+- `tipo_item` (ENUM: `principal`, `acompanhamento`, `bebida`, `sobremesa`, `extra`) — para a IA saber a função de cada item.
+- `combina_com` (TEXT[]) — tags livres tipo `["espetinho", "carne", "porcao"]` que ajudam a IA a casar itens. Ex: farofa teria `combina_com = ["espetinho", "carne"]`.
 
-### Checkout do cliente logado
-- Endereço pré-preenchido (usa endereços salvos, permite adicionar novo).
-- Campo "Aplicar cupom" — digita código, valida, mostra desconto.
-- Se modo = cashback e cliente tem saldo: toggle "Usar R$ X,XX de cashback".
-- Se modo = pontos e cliente tem pontos suficientes: toggle "Trocar X pontos por R$ Y".
-- Se modo = cartão e cliente completou o cartão: automaticamente adiciona o item grátis.
-- Ao concluir, sistema credita cashback/pontos/carimbo do pedido novo.
+**Nova tabela `upsell_suggestions_cache`:**
+- `cart_signature` (TEXT, hash SHA-256 dos IDs+quantidades do carrinho ordenados) — chave de cache.
+- `suggestions` (JSONB) — resposta da IA.
+- `created_at` — TTL de 10 minutos (a cada acesso, ignoramos se `created_at < now() - 10min`).
+- Cache serve para **todos** os clientes: se 2 pessoas montam o mesmo carrinho em 10 min, IA roda 1 vez só. Corta ~70% do custo.
+- Sem RLS restritiva (leitura pública, escrita via edge function com service_role).
 
----
+**Adicionar em `restaurant_config`:**
+- `upsell_ai_enabled` (BOOLEAN, default true) — admin pode desligar a página inteira.
+- `upsell_min_subtotal` (NUMERIC, default 15) — abaixo disso pula.
 
-## Fluxo do admin
+### 2. Edge Function `suggest-upsell`
 
-### Nova página `/admin/fidelidade`
-- Radio de seleção do modo (nenhum / cashback / pontos / cartão).
-- Campos condicionais:
-  - Cashback: % (ex: 5), saldo mínimo para uso, validade em dias.
-  - Pontos: real por ponto, pontos para R$ 1 de desconto.
-  - Cartão: quantidade de pedidos, item grátis (select do cardápio), valor máximo do item grátis.
-- Botão "Salvar" — grava em `restaurant_config`.
+Recebe o carrinho atual, retorna sugestões:
 
-### Nova página `/admin/cupons`
-- Lista de cupons com filtros (ativos, expirados, por tipo).
-- Modal de criação/edição com:
-  - Código (ex: `PROMO20`), descrição.
-  - Tipo de desconto: % ou R$ fixo.
-  - Valor mínimo de pedido.
-  - Validade (data início/fim).
-  - Uso único global / uso único por cliente / uso ilimitado.
-  - **Gatilho**: manual, boas-vindas, aniversário, reengajamento.
-  - Ativo (switch).
-- Cupons de gatilho automático são gerados por Edge Functions programadas (cron):
-  - **Boas-vindas**: criado quando cliente completa cadastro.
-  - **Aniversário**: cron diário, envia via WhatsApp na semana do aniversário.
-  - **Reengajamento**: cron semanal, cliente sem pedido há N dias (config) recebe cupom.
+1. Calcula `cart_signature` (hash dos itens+quantidades).
+2. Consulta cache — se hit válido, retorna direto.
+3. Se miss: busca todos os `menu_items` ativos (nome, descrição, preço, cmv, tipo_item, combina_com), remove os que já estão no carrinho.
+4. Monta prompt para a IA (Lovable AI Gateway, modelo `google/gemini-3.5-flash` — rápido e barato) com:
+   - Itens no carrinho (nome + tipo + tags).
+   - Catálogo restante (nome + tipo + tags + preço + cmv se houver).
+   - Instrução: retornar JSON estruturado `[{ item_id, motivo_curto }]` de 2 a 4 itens, priorizando complementaridade primeiro e margem em caso de empate.
+5. Usa AI SDK com `Output.object` + Zod para forçar JSON válido.
+6. Grava resposta no cache e retorna.
 
-### Página `/admin/clientes` (evolução da atual)
-- Nova coluna "Cadastrado" (badge verde/cinza).
-- Nova aba "Contas cadastradas" com saldo/pontos/carimbos por cliente.
-- Botão manual "Enviar cupom" abre modal para gerar cupom pontual para um cliente.
+Trata erros do gateway (429/402) devolvendo array vazio → o front simplesmente pula a página.
 
----
+### 3. Frontend
 
-## Modelo de dados
+**Novo componente `UpsellStep.tsx`:**
+- Aparece após clicar "Continuar para Pagamento" no `CartSheet` (substitui o pulo direto pro `CheckoutForm`).
+- Ao abrir, chama `suggest-upsell` (loading com skeleton por ~1-2s).
+- Renderiza cards em grid 2 colunas: foto, nome, preço, **badge com o "motivo" da IA** (ex: *"Combina perfeito com seu espetinho"*), botão **"+ Adicionar"**.
+- Botões finais: **"Continuar sem adicionar"** (pula) e **"Adicionar selecionados"** (aplica os que o cliente marcou).
+- Se IA retornar vazio ou subtotal < mínimo configurado → pula direto para o checkout, sem UI intermediária.
 
-### Alterações em tabelas existentes
-- `customers`: adiciona `user_id UUID` (nullable, FK `auth.users`), `data_nascimento DATE`. Cliente anônimo continua tendo `user_id = null`; ao cadastrar, o registro existente com mesmo whatsapp é ligado.
-- `restaurant_config`: adiciona `loyalty_mecanica`, `loyalty_cashback_percentual`, `loyalty_cashback_validade_dias`, `loyalty_pontos_por_real`, `loyalty_pontos_para_real`, `loyalty_cartao_pedidos`, `loyalty_cartao_item_id`, `loyalty_cartao_valor_max`, `reengajamento_dias_inativo`.
-- `orders`: adiciona `user_id UUID` (nullable), `coupon_id UUID` (nullable), `desconto_cupom NUMERIC`, `desconto_cashback NUMERIC`, `desconto_pontos NUMERIC`, `cashback_ganho NUMERIC`, `pontos_ganhos INT`, `stamp_ganho BOOLEAN`.
+**Ajuste no `CartSheet.tsx`:**
+- Nova state `step: 'cart' | 'upsell' | 'checkout'`.
+- Fluxo: `cart` → `upsell` → `checkout`.
+- Botão "Voltar" em cada etapa.
 
-### Tabelas novas
-- `customer_loyalty` — 1 linha por user_id: `saldo_cashback`, `pontos`, `pedidos_cartao` (contador atual), `updated_at`.
-- `coupons` — cadastro dos cupons.
-- `coupon_redemptions` — histórico de uso (coupon_id, user_id, order_id, valor_desconto, redeemed_at).
-- `customer_addresses` — endereços salvos por cliente logado.
+### 4. Admin — cadastro dos novos campos
 
-### Segurança (RLS)
-- Cliente logado só vê/edita: seu customer, seus loyalty, seus coupons (via `coupon_redemptions`), seus endereços, seus pedidos.
-- Staff continua com acesso via `has_permission`.
-- INSERT público em orders/customers continua (checkout anônimo). Se cliente estiver logado, pedido carrega `user_id` e políticas por `auth.uid()` funcionam junto.
+**Página `/admin/cardapio` (edição de item):**
+- Novo campo **CMV (R$)** — opcional, com tooltip explicando "Usado pela IA de sugestões para priorizar itens de maior margem".
+- Novo select **Tipo do item** — principal / acompanhamento / bebida / sobremesa / extra.
+- Novo campo **Tags de combinação** — input de tags livre (chips estilo `["espetinho", "carne"]`).
 
----
+**Página `/admin/configuracoes`:**
+- Toggle **"Ativar página de sugestões IA no checkout"**.
+- Input **"Subtotal mínimo para mostrar sugestões (R$)"**.
 
-## Auth do cliente (separada da auth de staff)
+## Detalhes técnicos
 
-- Mesmo Supabase Auth (email/senha + Google via Lovable Cloud managed OAuth).
-- Distinção: staff tem entrada em `user_roles`; cliente comum não tem. `ProtectedRoute` do admin continua exigindo role.
-- Novo contexto `ClienteAuthContext` (leve, só sessão) usado no cardápio público.
-- Trigger `handle_new_user` já cria `profiles` — vai criar também `customer_loyalty` se não existir e ligar `customers` por whatsapp quando fornecido.
-- Email de confirmação: usar templates de auth do Lovable (opcional — depende do usuário querer ativar email de domínio próprio; sem isso, funciona com email padrão do Lovable).
+- **Modelo IA**: `google/gemini-3.5-flash` (Lovable AI Gateway) — sub-segundo de latência, custo baixíssimo, ótimo para JSON estruturado curto.
+- **Output estruturado**: AI SDK `Output.object` com schema Zod pequeno (`{ suggestions: [{item_id, motivo_curto}] }`, sem `.min/.max/enum` grande — regras vão no prompt).
+- **Cache signature**: `sha256(sorted(item_id + "x" + qty).join("|"))` — determinístico, ignora ordem de adição.
+- **Fallback silencioso**: qualquer erro (gateway, timeout > 5s, JSON inválido) → pula para checkout. O cliente nunca vê erro.
+- **RLS**: `upsell_suggestions_cache` com GRANT SELECT anon (leitura pública, IDs não sensíveis) e escrita restrita ao service_role da edge function.
+- **Custo estimado**: com cache 10min + gemini-flash, ~R$ 0,001 por carrinho único. Praticamente irrelevante mesmo em alto volume.
 
----
+## O que fica fora (pode virar V2)
 
-## Edge Functions
+- Aprendizado com base em pedidos passados (o que outros clientes com carrinhos parecidos pediram). Fica pra depois — começamos com IA "cold" usando só CMV+tags.
+- A/B test automático (grupo controle sem sugestão para medir uplift).
+- Sugestão de **combos** montados (2 itens juntos com desconto). Requer nova entidade de combos.
+- Editar/gerar CMV em massa via CSV — por enquanto item-a-item.
 
-- **`apply-coupon`**: valida código (validade, mínimo, uso), retorna desconto calculado. Chamada no checkout.
-- **`redeem-loyalty`**: aplica cashback/pontos no pedido de forma atômica (evita dupla aplicação).
-- **`birthday-coupons`** (cron diário): gera cupom + envia WhatsApp para aniversariantes da semana.
-- **`reengagement-coupons`** (cron semanal): identifica clientes inativos, gera cupom + envia WhatsApp.
-- **`award-loyalty`** (trigger via DB ou chamada pós-checkout): credita cashback/pontos/carimbo quando pedido muda pra "entregue".
+## Ordem de execução
 
----
-
-## Entrega em fases
-
-Faço tudo em sequência dentro da mesma execução, mas em fases para você validar:
-
-1. **Fase 1 — Auth do cliente + cadastro opcional**
-   - Migração: `user_id` em customers, `customer_addresses`, ajuste do trigger.
-   - Google OAuth ativado (Lovable Cloud managed).
-   - Páginas `/cliente/login`, `/cliente/cadastro`, `/cliente/conta` (abas Perfil e Pedidos).
-   - Header do cardápio com "Entrar/Minha conta".
-   - Checkout detecta se está logado e pré-preenche.
-
-2. **Fase 2 — Cupons**
-   - Migração: `coupons`, `coupon_redemptions`, campos em `orders`.
-   - Página `/admin/cupons` (CRUD).
-   - Edge Function `apply-coupon`.
-   - Campo cupom no checkout + aba "Meus cupons".
-
-3. **Fase 3 — Fidelidade configurável**
-   - Migração: campos em `restaurant_config`, `customer_loyalty`, campos em `orders`.
-   - Página `/admin/fidelidade`.
-   - Edge Function `award-loyalty` + `redeem-loyalty`.
-   - Aba "Recompensas" na conta do cliente + toggles no checkout.
-
-4. **Fase 4 — Cupons automáticos**
-   - Cron `birthday-coupons` (diário).
-   - Cron `reengagement-coupons` (semanal).
-   - Cupom de boas-vindas disparado no signup.
-   - Nova sidebar admin: "Fidelidade" e "Cupons".
-
----
-
-## Pontos que ficam de fora deste plano (podem virar V2)
-
-- Notificação por email de cupom novo (só WhatsApp por enquanto, alinhado com o resto do app).
-- Ranking/gamificação de clientes.
-- Cupons condicionais complexos (só em bebidas, só sábado, etc.) — começamos com regras simples.
-- Referral / indique um amigo.
-
----
-
-## Observações
-
-- Quando estiver em build, se você quiser email transacional próprio (ex: enviar cupom por email) precisamos configurar um domínio de email — posso guiar depois.
-- Os cupons automáticos por WhatsApp usam link `wa.me` com mensagem pré-preenchida (sem custo). Envio massivo automático real (via WhatsApp Business API) seria integração paga separada.
-- O admin poderá **desativar completamente** o programa (`loyalty_mecanica = 'none'` e desativar cupons) — nada quebra, sistema volta ao comportamento atual.
+1. Migration (colunas em menu_items, tabela cache, colunas em restaurant_config) → aguarda aprovação.
+2. Edge function `suggest-upsell`.
+3. Admin: campos novos em cardápio e configurações.
+4. Frontend: `UpsellStep` + integração no `CartSheet`.
+5. Teste manual: montar carrinho só com espetinho, verificar se IA sugere farofa/aipim.
