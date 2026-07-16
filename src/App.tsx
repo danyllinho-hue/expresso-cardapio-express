@@ -18,7 +18,11 @@ import Configuracoes from "./pages/admin/Configuracoes";
 import ExportarDados from "./pages/admin/ExportarDados";
 import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
+import ClienteLogin from "./pages/ClienteLogin";
+import ClienteConta from "./pages/ClienteConta";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ClienteAuthProvider } from "./contexts/ClienteAuthContext";
+
 
 const queryClient = new QueryClient();
 
@@ -28,14 +32,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ClienteAuthProvider>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/setup" element={<Setup />} />
+          <Route path="/cliente/login" element={<ClienteLogin />} />
+          <Route path="/cliente/conta" element={<ClienteConta />} />
           <Route path="/pedido/:orderId" element={<OrderTracking />} />
           <Route path="/admin" element={<Admin />}>
             <Route index element={<Dashboard />} />
             <Route 
+
               path="pedidos" 
               element={
                 <ProtectedRoute permission="manage_orders">
@@ -103,7 +111,9 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </ClienteAuthProvider>
       </BrowserRouter>
+
     </TooltipProvider>
   </QueryClientProvider>
 );

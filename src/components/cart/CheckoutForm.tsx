@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Gift } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
+import { useClienteAuth } from "@/contexts/ClienteAuthContext";
+import { Link } from "react-router-dom";
+
 
 interface MenuItem {
   id: string;
@@ -49,6 +52,7 @@ const checkoutSchema = z.object({
 });
 
 export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormProps) => {
+  const { user } = useClienteAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nome: "",
@@ -57,6 +61,35 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
     data_nascimento: "",
     notes: "",
   });
+
+  // Prefill from logged-in customer record
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("nome, whatsapp, endereco, data_nascimento")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setFormData((f) => ({
+          ...f,
+          nome: data.nome ?? f.nome,
+          whatsapp: data.whatsapp ?? f.whatsapp,
+          endereco: data.endereco ?? f.endereco,
+          data_nascimento: data.data_nascimento ?? f.data_nascimento,
+        }));
+      } else {
+        const meta = user.user_metadata ?? {};
+        setFormData((f) => ({
+          ...f,
+          nome: f.nome || (meta.nome as string) || (meta.full_name as string) || "",
+          whatsapp: f.whatsapp || (meta.whatsapp as string) || "",
+        }));
+      }
+    })();
+  }, [user]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,13 +116,23 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
       }
 
       // Create or get customer
-      const { data: existingCustomer } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("whatsapp", formData.whatsapp)
-        .maybeSingle();
-
-      let customerId = existingCustomer?.id;
+      let customerId: string | undefined;
+      if (user) {
+        const { data: mine } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        customerId = mine?.id;
+      }
+      if (!customerId) {
+        const { data: existingCustomer } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("whatsapp", formData.whatsapp)
+          .maybeSingle();
+        customerId = existingCustomer?.id;
+      }
 
       if (!customerId) {
         const { data: newCustomer, error: customerError } = await supabase
@@ -99,12 +142,24 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
             whatsapp: formData.whatsapp,
             endereco: formData.endereco,
             data_nascimento: formData.data_nascimento || null,
+            user_id: user?.id ?? null,
           })
           .select("id")
           .single();
 
         if (customerError) throw customerError;
         customerId = newCustomer.id;
+      } else if (user) {
+        // Keep customer row linked and refreshed with latest info
+        await supabase
+          .from("customers")
+          .update({
+            user_id: user.id,
+            nome: formData.nome,
+            endereco: formData.endereco,
+            data_nascimento: formData.data_nascimento || null,
+          })
+          .eq("id", customerId);
       }
 
       // Create order
@@ -112,6 +167,7 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
         .from("orders")
         .insert({
           customer_id: customerId,
+          user_id: user?.id ?? null,
           total,
           delivery_address: formData.endereco,
           notes: formData.notes || null,
@@ -121,6 +177,7 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
         .single();
 
       if (orderError) throw orderError;
+
 
       // Create order items
       const orderItems = cart.map((cartItem) => ({
@@ -219,7 +276,30 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
 
       {/* Customer Data */}
       <div className="space-y-4">
-        <h3 className="font-semibold">Seus Dados</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Seus Dados</h3>
+          {user ? (
+            <span className="text-xs text-muted-foreground">Logado como {user.email}</span>
+          ) : (
+            <Link to="/cliente/login" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+              <Gift className="w-3 h-3" /> Já tem conta? Entrar
+            </Link>
+          )}
+        </div>
+
+        {!user && (
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-start gap-2 text-sm">
+            <Gift className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+            <div>
+              <p className="font-medium">Quer cashback, cupons e histórico de pedidos?</p>
+              <Link to="/cliente/login" className="text-primary hover:underline text-xs">
+                Criar conta em 30 segundos →
+              </Link>
+            </div>
+          </div>
+        )}
+
+
         
         <div className="space-y-2">
           <Label htmlFor="nome">Nome Completo *</Label>
