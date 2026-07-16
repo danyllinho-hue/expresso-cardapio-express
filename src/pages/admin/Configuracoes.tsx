@@ -172,7 +172,7 @@ const Configuracoes = () => {
       // Atualizar no banco de dados imediatamente
       const { error: updateError } = await supabase
         .from("restaurant_config")
-        .update({ logo_url: publicUrl } as any)
+        .update({ logo_url: publicUrl })
         .eq("id", config.id);
 
       if (updateError) throw updateError;
