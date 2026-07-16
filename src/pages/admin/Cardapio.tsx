@@ -24,6 +24,9 @@ interface MenuItem {
   image_thumb_url: string | null;
   status: string;
   destaque: boolean;
+  custo_cmv: number | null;
+  tipo_item: string | null;
+  combina_com: string[] | null;
 }
 
 interface Category {
