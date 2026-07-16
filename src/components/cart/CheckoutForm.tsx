@@ -276,7 +276,30 @@ export const CheckoutForm = ({ cart, total, onBack, onSuccess }: CheckoutFormPro
 
       {/* Customer Data */}
       <div className="space-y-4">
-        <h3 className="font-semibold">Seus Dados</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Seus Dados</h3>
+          {user ? (
+            <span className="text-xs text-muted-foreground">Logado como {user.email}</span>
+          ) : (
+            <Link to="/cliente/login" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+              <Gift className="w-3 h-3" /> Já tem conta? Entrar
+            </Link>
+          )}
+        </div>
+
+        {!user && (
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-start gap-2 text-sm">
+            <Gift className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+            <div>
+              <p className="font-medium">Quer cashback, cupons e histórico de pedidos?</p>
+              <Link to="/cliente/login" className="text-primary hover:underline text-xs">
+                Criar conta em 30 segundos →
+              </Link>
+            </div>
+          </div>
+        )}
+
+
         
         <div className="space-y-2">
           <Label htmlFor="nome">Nome Completo *</Label>
