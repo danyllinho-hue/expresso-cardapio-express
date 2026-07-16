@@ -21,8 +21,10 @@ Deno.serve(async (req) => {
       if (!instanceId || !token) throw new Error('Instance ID ou Token ausentes')
       
       console.log(`[whatsapp-sender] Connecting instance: ${instanceId}`)
-      const url = `https://api.uazapi.com.br/instance/connect`
-      const response = await fetch(url, {
+      
+      // Tentativa 1: Endpoint /instance/connect
+      const connectUrl = `https://api.uazapi.com.br/instance/connect`
+      const response = await fetch(connectUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,8 +36,34 @@ Deno.serve(async (req) => {
         })
       })
       
-      const result = await response.json()
-      console.log(`[whatsapp-sender] UAZAPI connect response status: ${response.status}`)
+      let result;
+      try {
+        result = await response.json()
+      } catch (e) {
+        result = { error: 'Falha ao processar resposta da UAZAPI' }
+      }
+
+      console.log(`[whatsapp-sender] UAZAPI connect response status: ${response.status}`, result)
+      
+      // Se falhar, tenta o endpoint /instance/qrcode (alguns modelos usam esse)
+      if (response.status !== 200) {
+        console.log(`[whatsapp-sender] Attempting alternative /instance/qrcode endpoint...`)
+        const qrUrl = `https://api.uazapi.com.br/instance/qrcode?instanceId=${instanceId}`
+        const qrResponse = await fetch(qrUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (qrResponse.ok) {
+          const qrResult = await qrResponse.json()
+          return new Response(JSON.stringify(qrResult), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+      }
       
       return new Response(JSON.stringify(result), {
         status: response.status,
